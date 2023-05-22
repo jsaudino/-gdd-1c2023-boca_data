@@ -266,7 +266,7 @@ CREATE TABLE boca_data.RECLAMO(
                                   descripcion nvarchar(255),
                                   fecha_reclamo datetime2(3),
                                   operador_id decimal(18,0),
-                                  estado nvarchar(50),
+                                  estado decimal(18,0),
                                   solucion nvarchar(255),
                                   calificacion decimal(18,0),
                                   fecha_solucion datetime2(3)
@@ -374,8 +374,10 @@ ALTER TABLE boca_data.DIRECCION_USUARIO
     CONSTRAINT FK_DIRECCION_USUARIO_LOCALIDAD FOREIGN KEY (localidad_id)
     REFERENCES boca_data.LOCALIDAD (id);
 
+
 ALTER TABLE boca_data.REPARTIDOR
-    WITH CHECK ADD CONSTRAINT FK_REPARTIDOR_LOCALIDAD FOREIGN KEY (localidad_id) REFERENCES boca_data.LOCALIDAD (id);
+    WITH CHECK ADD CONSTRAINT FK_REPARTIDOR_LOCALIDAD FOREIGN KEY (localidad_id) REFERENCES boca_data.LOCALIDAD (id),
+    CONSTRAINT FK_REPARTIDOR_TIPO_MOVILIDAD FOREIGN KEY (movilidad_id) REFERENCES boca_data.TIPO_MOVILIDAD (id);
 
 ALTER TABLE boca_data.RECLAMO
     WITH CHECK ADD  CONSTRAINT FK_RECLAMO_USUARIO FOREIGN KEY(usuario_id)
@@ -385,7 +387,9 @@ ALTER TABLE boca_data.RECLAMO
     CONSTRAINT FK_RECLAMO_TIPO FOREIGN KEY (tipo)
     REFERENCES boca_data.RECLAMO_TIPO (id),
     CONSTRAINT FK_OPERADOR FOREIGN KEY (operador_id)
-    REFERENCES boca_data.OPERADOR (id);
+    REFERENCES boca_data.OPERADOR (id),
+    CONSTRAINT FK_RECLAMO_ESTADO FOREIGN KEY (estado)
+    REFERENCES boca_data.RECLAMO_ESTADO (id);
 
 ALTER TABLE boca_data.RECLAMO_CUPON
     WITH CHECK ADD  CONSTRAINT FK_RECLAMO FOREIGN KEY(reclamo_id)
@@ -410,5 +414,11 @@ ALTER TABLE boca_data.ENVIO_MENSAJERIA
     CONSTRAINT FK_ENVIO_MENSAJERIA_ENVIO_ESTADO FOREIGN KEY (envio_estado_id) REFERENCES boca_data.ENVIO_ESTADO (id),
     CONSTRAINT FK_ENVIO_MENSAJERIA_PAQUETE FOREIGN KEY (paquete_id) REFERENCES boca_data.PAQUETE (id),
     CONSTRAINT FK_ENVIO_MENSAJERIA_REPARTIDOR FOREIGN KEY (repartidor_id) REFERENCES boca_data.PAQUETE_TIPO (id);
+
+ALTER TABLE boca_data.CUPON
+    WITH CHECK ADD  CONSTRAINT FK_CUPON_TIPO FOREIGN KEY(tipo)
+    REFERENCES boca_data.CUPON_TIPO (id),
+    CONSTRAINT FK_CUPON_USUARIO FOREIGN KEY (usuario_id)
+    REFERENCES boca_data.USUARIO (id);
 
 COMMIT TRANSACTION
