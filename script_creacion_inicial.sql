@@ -598,6 +598,46 @@ ALTER TABLE boca_data.LOCALIDAD
 COMMIT TRANSACTION
 
 
+
+--------------------------------------- C R E A C I O N   S P ---------------------------------------
+
+BEGIN TRANSACTION
+
+--Tipo de Local
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_local_tipo')
+	DROP PROCEDURE migrar_local_tipo
+GO
+CREATE PROCEDURE migrar_local_tipo
+ AS
+  BEGIN
+	INSERT INTO boca_data.LOCAL_TIPO (nombre)
+	SELECT DISTINCT LOCAL_TIPO
+	FROM gd_esquema.Maestra
+	WHERE LOCAL_TIPO IS NOT NULL
+  END
+GO
+--delete from boca_data.LOCAL_TIPO
+--select * from boca_data.LOCAL_TIPO
+
+
+COMMIT
+
+
+--------------------------------------- M I G R A C I O N ---------------------------------------
+
+BEGIN TRANSACTION
+	BEGIN TRY
+		EXECUTE migrar_local_tipo
+		
+		
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+		THROW 50001, 'Error al migrar todoo', 1;
+	END CATCH
+COMMIT
+
+
 /*
 31 tablas:
 
