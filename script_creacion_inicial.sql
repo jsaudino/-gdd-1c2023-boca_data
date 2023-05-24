@@ -604,10 +604,10 @@ COMMIT TRANSACTION
 BEGIN TRANSACTION
 
 --Tipo de Local
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'migrar_local_tipo')
-	DROP PROCEDURE migrar_local_tipo
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_local_tipo')
+	DROP PROCEDURE boca_data.migrar_local_tipo
 GO
-CREATE PROCEDURE migrar_local_tipo
+CREATE PROCEDURE boca_data.migrar_local_tipo
  AS
   BEGIN
 	INSERT INTO boca_data.LOCAL_TIPO (nombre)
@@ -619,6 +619,210 @@ GO
 --delete from boca_data.LOCAL_TIPO
 --select * from boca_data.LOCAL_TIPO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_provincia')
+	DROP PROCEDURE boca_data.migrar_provincia
+GO
+CREATE PROCEDURE boca_data.migrar_provincia
+ AS
+  BEGIN
+	INSERT INTO boca_data.PROVINCIA (nombre)
+	SELECT DISTINCT LOCAL_PROVINCIA
+	FROM gd_esquema.Maestra
+	WHERE LOCAL_PROVINCIA IS NOT NULL
+  END
+GO
+
+--select distinct LOCAL_PROVINCIA from gd_esquema.Maestra
+--select * from boca_data.PROVINCIA
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_dia')
+	DROP PROCEDURE boca_data.migrar_dia
+GO
+CREATE PROCEDURE boca_data.migrar_dia
+ AS
+  BEGIN
+	INSERT INTO boca_data.DIA (nombre)
+	SELECT DISTINCT HORARIO_LOCAL_DIA
+	FROM gd_esquema.Maestra
+	WHERE HORARIO_LOCAL_DIA IS NOT NULL
+  END
+GO
+
+--select distinct HORARIO_LOCAL_DIA from gd_esquema.Maestra
+--select * from boca_data.DIA
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_tipo_movilidad')
+	DROP PROCEDURE boca_data.migrar_tipo_movilidad
+GO
+CREATE PROCEDURE boca_data.migrar_tipo_movilidad
+ AS
+  BEGIN
+	INSERT INTO boca_data.TIPO_MOVILIDAD (nombre)
+	SELECT DISTINCT REPARTIDOR_TIPO_MOVILIDAD
+	FROM gd_esquema.Maestra
+	WHERE REPARTIDOR_TIPO_MOVILIDAD IS NOT NULL
+  END
+GO
+
+--delete from boca_data.TIPO_MOVILIDAD
+--select distinct REPARTIDOR_TIPO_MOVILIDAD from gd_esquema.Maestra
+--select * from boca_data.TIPO_MOVILIDAD
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_cupon_tipo')
+	DROP PROCEDURE boca_data.migrar_cupon_tipo
+GO
+CREATE PROCEDURE boca_data.migrar_cupon_tipo
+ AS
+  BEGIN
+	INSERT INTO boca_data.CUPON_TIPO (nombre)
+	SELECT DISTINCT CUPON_TIPO
+	FROM gd_esquema.Maestra
+	WHERE CUPON_TIPO IS NOT NULL
+  END
+GO
+
+--delete from boca_data.TIPO_MOVILIDAD
+--select distinct CUPON_TIPO from gd_esquema.Maestra
+--select * from boca_data.CUPON_TIPO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_medio_de_pago_tipo')
+	DROP PROCEDURE boca_data.migrar_medio_de_pago_tipo
+GO
+CREATE PROCEDURE boca_data.migrar_medio_de_pago_tipo
+ AS
+  BEGIN
+	INSERT INTO boca_data.MEDIO_DE_PAGO_TIPO (nombre)
+	SELECT DISTINCT MEDIO_PAGO_TIPO
+	FROM gd_esquema.Maestra
+	WHERE MEDIO_PAGO_TIPO IS NOT NULL
+  END
+GO
+--select distinct MEDIO_PAGO_TIPO from gd_esquema.Maestra
+--select * from boca_data.MEDIO_DE_PAGO_TIPO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_pedido_estado')
+	DROP PROCEDURE boca_data.migrar_pedido_estado
+GO
+CREATE PROCEDURE boca_data.migrar_pedido_estado
+ AS
+  BEGIN
+	INSERT INTO boca_data.PEDIDO_ESTADO (nombre)
+	SELECT DISTINCT PEDIDO_ESTADO
+	FROM gd_esquema.Maestra
+	WHERE PEDIDO_ESTADO IS NOT NULL
+  END
+GO
+
+--delete from boca_data.migrar_pedido_estado
+--select distinct PEDIDO_ESTADO from gd_esquema.Maestra
+--select * from boca_data.PEDIDO_ESTADO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_reclamo_tipo')
+	DROP PROCEDURE boca_data.migrar_reclamo_tipo
+GO
+CREATE PROCEDURE boca_data.migrar_reclamo_tipo
+ AS
+  BEGIN
+	INSERT INTO boca_data.RECLAMO_TIPO (nombre)
+	SELECT DISTINCT RECLAMO_TIPO
+	FROM gd_esquema.Maestra
+	WHERE RECLAMO_TIPO IS NOT NULL
+  END
+GO
+
+--delete from boca_data.migrar_pedido_estado
+--select distinct RECLAMO_TIPO from gd_esquema.Maestra
+--select * from boca_data.RECLAMO_TIPO
+
+
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_reclamo_estado')
+	DROP PROCEDURE boca_data.migrar_reclamo_estado
+GO
+CREATE PROCEDURE boca_data.migrar_reclamo_estado
+ AS
+  BEGIN
+	INSERT INTO boca_data.RECLAMO_ESTADO (nombre)
+	SELECT DISTINCT RECLAMO_ESTADO
+	FROM gd_esquema.Maestra
+	WHERE RECLAMO_ESTADO IS NOT NULL
+  END
+GO
+
+--delete from boca_data.migrar_reclamo_estado
+--select distinct RECLAMO_ESTADO from gd_esquema.Maestra
+--select * from boca_data.RECLAMO_ESTADO
+
+
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_envio_estado')
+	DROP PROCEDURE boca_data.migrar_envio_estado
+GO
+CREATE PROCEDURE boca_data.migrar_envio_estado
+ AS
+  BEGIN
+	INSERT INTO boca_data.ENVIO_ESTADO (nombre)
+	SELECT DISTINCT ENVIO_MENSAJERIA_ESTADO
+	FROM gd_esquema.Maestra
+	WHERE ENVIO_MENSAJERIA_ESTADO IS NOT NULL
+  END
+GO
+
+--delete from boca_data.migrar_pedido_estado
+--select distinct ENVIO_MENSAJERIA_ESTADO from gd_esquema.Maestra
+--select * from boca_data.ENVIO_ESTADO
+
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_usuario')
+	DROP PROCEDURE boca_data.migrar_usuario
+GO
+CREATE PROCEDURE boca_data.migrar_usuario
+ AS
+  BEGIN
+	INSERT INTO boca_data.USUARIO (nombre, apellido, dni, fecha_registro, telefono, mail, fecha_nacimiento)
+	SELECT DISTINCT USUARIO_NOMBRE, USUARIO_APELLIDO, USUARIO_DNI, USUARIO_FECHA_REGISTRO, USUARIO_TELEFONO, USUARIO_MAIL, USUARIO_FECHA_NAC
+	FROM gd_esquema.Maestra
+  END
+GO
+
+--delete from boca_data.migrar_pedido_estado
+--select distinct USUARIO_NOMBRE, USUARIO_APELLIDO, USUARIO_DNI, USUARIO_FECHA_REGISTRO, USUARIO_TELEFONO, USUARIO_MAIL, USUARIO_FECHA_NAC from gd_esquema.Maestra
+--select * from boca_data.USUARIO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_paquete_tipo')
+	DROP PROCEDURE boca_data.migrar_paquete_tipo
+GO
+CREATE PROCEDURE boca_data.migrar_paquete_tipo
+ AS
+  BEGIN
+	INSERT INTO boca_data.PAQUETE_TIPO (nombre, precio_tipo, alto_max, ancho_max, peso_max, largo_max)
+	SELECT DISTINCT PAQUETE_TIPO, PAQUETE_TIPO_PRECIO, PAQUETE_ALTO_MAX, PAQUETE_ANCHO_MAX, PAQUETE_PESO_MAX, PAQUETE_LARGO_MAX
+	FROM gd_esquema.Maestra
+	WHERE PAQUETE_TIPO IS NOT NULL
+  END
+GO
+
+--delete from boca_data.PAQUETE_TIPO
+--select distinct PAQUETE_TIPO, PAQUETE_TIPO_PRECIO, PAQUETE_ALTO_MAX, PAQUETE_ANCHO_MAX, PAQUETE_PESO_MAX, PAQUETE_LARGO_MAX from gd_esquema.Maestra
+--select * from boca_data.PAQUETE_TIPO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_operador')
+	DROP PROCEDURE boca_data.migrar_operador
+GO
+CREATE PROCEDURE boca_data.migrar_operador
+ AS
+  BEGIN
+	INSERT INTO boca_data.OPERADOR (nombre, apellido, dni, telefono, mail, fecha_nacimiento, direccion)
+	SELECT DISTINCT OPERADOR_RECLAMO_NOMBRE, OPERADOR_RECLAMO_APELLIDO, OPERADOR_RECLAMO_DNI, OPERADOR_RECLAMO_TELEFONO, OPERADOR_RECLAMO_MAIL, OPERADOR_RECLAMO_FECHA_NAC, OPERADOR_RECLAMO_DIRECCION
+	FROM gd_esquema.Maestra
+	WHERE OPERADOR_RECLAMO_NOMBRE IS NOT NULL
+  END
+GO
+
+--delete from boca_data.OPERADOR
+--select distinct OPERADOR_RECLAMO_NOMBRE, OPERADOR_RECLAMO_APELLIDO, OPERADOR_RECLAMO_DNI, OPERADOR_RECLAMO_TELEFONO, OPERADOR_RECLAMO_MAIL, OPERADOR_RECLAMO_FECHA_NAC, OPERADOR_RECLAMO_DIRECCION from gd_esquema.Maestra
+--select * from boca_data.OPERADOR
+
 
 COMMIT
 
@@ -627,7 +831,19 @@ COMMIT
 
 BEGIN TRANSACTION
 	BEGIN TRY
-		EXECUTE migrar_local_tipo
+		EXECUTE boca_data.migrar_local_tipo
+		EXECUTE boca_data.migrar_provincia
+		EXECUTE boca_data.migrar_dia
+		EXECUTE boca_data.migrar_tipo_movilidad
+		EXECUTE boca_data.migrar_cupon_tipo
+		EXECUTE boca_data.migrar_medio_de_pago_tipo
+		EXECUTE boca_data.migrar_pedido_estado
+		EXECUTE boca_data.migrar_reclamo_tipo
+		EXECUTE boca_data.migrar_reclamo_estado
+		EXECUTE boca_data.migrar_envio_estado
+		EXECUTE boca_data.migrar_usuario
+		EXECUTE boca_data.migrar_paquete_tipo
+		EXECUTE boca_data.migrar_operador
 		
 		
 	END TRY
@@ -636,83 +852,3 @@ BEGIN TRANSACTION
 		THROW 50001, 'Error al migrar todoo', 1;
 	END CATCH
 COMMIT
-
-
-/*
-31 tablas:
-
-CATEGORIA
-LOCAL
-LOCAL_TIPO
-REPARTIDOR
-HORARIO
-DIA
-PRODUCTO
-PEDIDO_PRODUCTO
-PEDIDO
-PAQUETE_TIPO
-PAQUETE
-ENVIO_MENSAJERIA
-TIPO_MOVILIDAD
-ENVIO_ESTADO
-PEDIDO_ESTADO
-ENVIO
-OPERADOR
-DIRECCION_USUARIO
-USUARIO
-TARJETA
-CUPON
-CUPON_TIPO
-RECLAMO
-RECLAMO_CUPON
-CUPON_PEDIDO
-RECLAMO_TIPO
-RECLAMO_ESTADO
-MEDIO_DE_PAGO
-PROVINCIA
-LOCALIDAD
-MEDIO_DE_PAGO_TIPO
-
-41 FKs:
-FK_CATEGORIA_LOCAL_TIPO
-FK_LOCAL_LOCALIDAD
-FK_LOCAL_CATEGORIA
-FK_REPARTIDOR_LOCALIDAD
-FK_REPARTIDOR_TIPO_MOVILIDAD
-FK_HORARIO_DIA
-FK_HORARIO_LOCAL
-FK_PRODUCTO_LOCAL
-FK_PEDIDO_PRODUCTO_PRODUCTO
-FK_PEDIDO_PRODUCTO_PEDIDO
-FK_PEDIDO_USUARIO
-FK_PEDIDO_LOCAL
-FK_PEDIDO_ENVIO
-FK_PEDIDO_ESTADO
-FK_PEDIDO_MEDIO_DE_PAGO
-FK_PAQUETE_PAQUETE_TIPO
-FK_ENVIO_MENSAJERIA_USUARIO
-FK_ENVIO_MENSAJERIA_LOCALIDAD
-FK_ENVIO_MENSAJERIA_MEDIO_DE_PAGO
-FK_ENVIO_MENSAJERIA_ENVIO_ESTADO
-FK_ENVIO_MENSAJERIA_PAQUETE
-FK_ENVIO_MENSAJERIA_REPARTIDOR
-FK_ENVIO_DIRECCION_USUARIO
-FK_ENVIO_REPARTIDOR
-FK_DIRECCION_USUARIO_USUARIO
-FK_DIRECCION_USUARIO_LOCALIDAD
-FK_TARJETA_USUARIO
-FK_CUPON_CUPON_TIPO
-FK_CUPON_USUARIO
-FK_RECLAMO_USUARIO
-FK_RECLAMO_PEDIDO
-FK_RECLAMO_TIPO
-FK_RECLAMO_OPERADOR
-FK_RECLAMO_ESTADO
-FK_RECLAMO_CUPON_RECLAMO
-FK_RECLAMO_CUPON_CUPON
-FK_CUPON_PEDIDO_PEDIDO
-FK_CUPON_PEDIDO_CUPON
-FK_MEDIO_DE_PAGO_TIPO
-FK_MEDIO_DE_PAGO_TARJETA
-FK_LOCALIDAD_PROVINCIA
-*/
