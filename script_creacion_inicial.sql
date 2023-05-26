@@ -1169,7 +1169,45 @@ BEGIN
 END
 GO
 
-
+CREATE PROCEDURE boca_data.migrar_envio_mensajeria
+AS
+BEGIN
+    INSERT INTO boca_data.ENVIO_MENSAJERIA (usuario_id, fecha_mensajeria, direccion_origen, direccion_destino, localidad_id, kilometros, valor_asegurado, observacion, precio_envio, precio_seguro, propina, medio_pago_id, precio_total, envio_estado_id, fecha_entrega, calificacion, repartidor_id, tiempo_estimado)
+    SELECT DISTINCT
+        u.id,
+        m.ENVIO_MENSAJERIA_FECHA,
+        m.ENVIO_MENSAJERIA_DIR_ORIG,
+        m.ENVIO_MENSAJERIA_DIR_DEST,
+        l.id,
+        m.ENVIO_MENSAJERIA_KM,
+        m.ENVIO_MENSAJERIA_VALOR_ASEGURADO,
+        m.ENVIO_MENSAJERIA_OBSERV,
+        m.ENVIO_MENSAJERIA_PRECIO_ENVIO,
+        m.ENVIO_MENSAJERIA_PRECIO_SEGURO,
+        m.ENVIO_MENSAJERIA_PROPINA,
+        mp.id,
+        m.ENVIO_MENSAJERIA_PROPINA + m.ENVIO_MENSAJERIA_PRECIO_ENVIO + m.ENVIO_MENSAJERIA_PRECIO_SEGURO,
+        ee.id,
+        m.ENVIO_MENSAJERIA_FECHA_ENTREGA,
+        m.ENVIO_MENSAJERIA_CALIFICACION,
+        r.id,
+        m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO
+    FROM gd_esquema.Maestra m
+             JOIN boca_data.USUARIO u on u.nombre = m.USUARIO_NOMBRE AND
+                                         u.apellido = m.USUARIO_APELLIDO AND
+                                         u.dni = m.USUARIO_DNI
+             JOIN boca_data.PROVINCIA p on  p.nombre = m.ENVIO_MENSAJERIA_PROVINCIA
+             JOIN boca_data.LOCALIDAD l on  l.nombre = m.ENVIO_MENSAJERIA_LOCALIDAD and l.provincia_id=p.id
+             JOIN boca_data.TARJETA tarj on tarj.numero = m.MEDIO_PAGO_NRO_TARJETA AND tarj.marca = m.MARCA_TARJETA
+             JOIN boca_data.MEDIO_DE_PAGO_TIPO tipo on m.MEDIO_PAGO_TIPO = tipo.nombre
+             JOIN boca_data.MEDIO_DE_PAGO mp on mp.tarjeta_id = tarj.id and mp.tipo_id = tipo.id
+             JOIN boca_data.ENVIO_ESTADO ee on ee.nombre = m.ENVIO_MENSAJERIA_ESTADO
+             JOIN boca_data.REPARTIDOR r on r.dni=m.REPARTIDOR_DNI and
+                                            r.apellido = m.REPARTIDOR_APELLIDO and
+                                            r.nombre=m.REPARTIDOR_NOMBRE
+    WHERE m.ENVIO_MENSAJERIA_DIR_ORIG IS NOT NULL and m.ENVIO_MENSAJERIA_DIR_DEST IS NOT NULL
+END
+GO
 
 
 COMMIT
@@ -1205,6 +1243,7 @@ BEGIN TRY
     EXECUTE boca_data.migrar_cupon
     EXECUTE boca_data.migrar_tarjeta
     EXECUTE boca_data.migrar_medio_de_pago
+    EXECUTE boca_data.migrar_envio_mensajeria
     --EXECUTE boca_data.migrar_paquete
 
 END TRY
