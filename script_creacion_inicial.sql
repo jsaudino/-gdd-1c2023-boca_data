@@ -297,12 +297,14 @@ CREATE TABLE boca_data.TARJETA (
 --Cupon
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'CUPON')
 CREATE TABLE boca_data.CUPON(
-                                numero decimal(18,0) IDENTITY PRIMARY KEY,
-                                fecha_alta datetime2(3),
-                                fecha_vencimiento datetime2(3),
+                                id decimal(18,0) IDENTITY PRIMARY KEY,
+                                numero decimal(18,0),
+                                fecha_alta datetime,
+                                fecha_vencimiento datetime,
                                 monto decimal(18,2),
                                 tipo decimal(18,0),
-                                usuario_id decimal(18,0)
+                                usuario_id decimal(18,0),
+								es_reclamo BIT
 );
 
 --Tipo de Cupon
@@ -315,7 +317,7 @@ CREATE TABLE boca_data.CUPON_TIPO(
 --Reclamo
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'RECLAMO')
 CREATE TABLE boca_data.RECLAMO(
-                                  numero_reclamo decimal(18,0) IDENTITY PRIMARY KEY,
+                                  numero_reclamo decimal(18,0) PRIMARY KEY,
                                   usuario_id decimal(18,0),
                                   pedido_id decimal(18,0),
                                   tipo decimal(18,0),
@@ -568,7 +570,7 @@ ALTER TABLE boca_data.RECLAMO_CUPON
             REFERENCES boca_data.RECLAMO (numero_reclamo),
         CONSTRAINT FK_RECLAMO_CUPON_CUPON
             FOREIGN KEY (cupon_id)
-                REFERENCES boca_data.CUPON (numero);
+                REFERENCES boca_data.CUPON (id);
 
 --Cupon de Pedido -> Pedido
 --Cupon de Pedido -> Cupon
@@ -578,7 +580,7 @@ ALTER TABLE boca_data.CUPON_PEDIDO
             REFERENCES boca_data.PEDIDO (numero_pedido),
         CONSTRAINT FK_CUPON_PEDIDO_CUPON
             FOREIGN KEY (cupon_id)
-                REFERENCES boca_data.CUPON (numero);
+                REFERENCES boca_data.CUPON (id);
 
 --Medio de Pago -> Tipo de Medio de Pago
 --Medio de Pago -> Tarjeta
@@ -1013,28 +1015,6 @@ END
 GO
 
 
-
-
-
-CREATE PROCEDURE boca_data.migrar_cupon
-AS
-BEGIN
-    INSERT INTO boca_data.CUPON(fecha_alta,fecha_vencimiento,monto,tipo,usuario_id)
-    SELECT DISTINCT
-        m.CUPON_FECHA_ALTA,
-        m.CUPON_FECHA_VENCIMIENTO,
-        m.CUPON_MONTO,
-        ct.id,
-        u.id
-    FROM gd_esquema.Maestra m
-             JOIN boca_data.USUARIO u on u.dni = m.USUARIO_DNI and u.apellido=m.USUARIO_APELLIDO
-        and u.nombre = m.USUARIO_NOMBRE
-             JOIN boca_data.CUPON_TIPO ct on ct.nombre = m.CUPON_TIPO
-END
-GO
-
-
-
 /*
 CREATE FUNCTION boca_data.obtener_localidad_id (@repartidor_nombre nvarchar(255), @repartidor_apellido nvarchar(255), @repartidor_dni decimal(18, 0),
 @ENVIO_MENSAJERIA_FECHA datetime, @PEDIDO_FECHA datetime)
@@ -1173,7 +1153,7 @@ BEGIN
              JOIN boca_data.REPARTIDOR r on r.dni=m.REPARTIDOR_DNI and
                                             r.apellido = m.REPARTIDOR_APELLIDO and
                                             r.nombre=m.REPARTIDOR_NOMBRE
-    WHERE m.ENVIO_MENSAJERIA_DIR_ORIG IS NOT NULL and m.ENVIO_MENSAJERIA_DIR_DEST IS NOT NULL
+    WHERE m.ENVIO_MENSAJERIA_NRO IS NOT NULL
 END
 GO
 
@@ -1244,11 +1224,134 @@ BEGIN
     FROM gd_esquema.Maestra m
              JOIN boca_data.DIRECCION_USUARIO du on  du.nombre = m.DIRECCION_USUARIO_NOMBRE and
                                                      du.direccion = m.DIRECCION_USUARIO_DIRECCION
-             JOIN boca_data.REPARTIDOR r on r.dni=m.REPARTIDOR_DNI and
-                                            r.apellido = m.REPARTIDOR_APELLIDO and r.nombre=m.REPARTIDOR_NOMBRE
+             JOIN boca_data.REPARTIDOR r on r.dni = m.REPARTIDOR_DNI and
+                                            r.apellido = m.REPARTIDOR_APELLIDO and
+                                            r.nombre = m.REPARTIDOR_NOMBRE
 
 END
 GO
+
+
+
+
+
+CREATE PROCEDURE boca_data.migrar_reclamo
+    AS
+BEGIN
+INSERT INTO boca_data.RECLAMO(numero_reclamo, usuario_id, pedido_id, tipo, descripcion, fecha_reclamo, operador_id, estado, solucion, calificacion, fecha_solucion)
+SELECT DISTINCT
+    m.RECLAMO_NRO,
+    u.id,
+    p.numero_pedido,
+    t.id,
+    m.RECLAMO_DESCRIPCION,
+    m.RECLAMO_FECHA,
+    o.id,
+    e.id,
+    m.RECLAMO_SOLUCION,
+    m.RECLAMO_CALIFICACION,
+    m.RECLAMO_FECHA_SOLUCION
+FROM gd_esquema.Maestra m
+         JOIN boca_data.USUARIO u on u.nombre = m.USUARIO_NOMBRE AND
+                                     u.apellido = m.USUARIO_APELLIDO AND
+                                     u.dni = m.USUARIO_DNI
+         JOIN boca_data.PEDIDO p on p.numero_pedido = m.PEDIDO_NRO
+         JOIN boca_data.RECLAMO_TIPO t on t.nombre = m.RECLAMO_TIPO
+         JOIN boca_data.OPERADOR o on o.nombre = m.OPERADOR_RECLAMO_NOMBRE AND
+                                      o.apellido = m.OPERADOR_RECLAMO_APELLIDO AND
+                                      o.dni = m.OPERADOR_RECLAMO_DNI
+         JOIN boca_data.RECLAMO_ESTADO e on e.nombre = m.RECLAMO_ESTADO
+END
+GO
+
+
+CREATE PROCEDURE boca_data.migrar_cupon
+AS
+BEGIN
+    INSERT INTO boca_data.CUPON(numero,fecha_alta,fecha_vencimiento,monto,tipo,usuario_id,es_reclamo)
+    SELECT DISTINCT
+        m.CUPON_NRO,
+        m.CUPON_FECHA_ALTA,
+        m.CUPON_FECHA_VENCIMIENTO,
+        m.CUPON_MONTO,
+        t.id,
+        u.id,
+		0
+    FROM gd_esquema.Maestra m
+             JOIN boca_data.USUARIO u on u.dni = m.USUARIO_DNI and
+                                         u.apellido=m.USUARIO_APELLIDO and
+                                         u.nombre = m.USUARIO_NOMBRE
+             JOIN boca_data.CUPON_TIPO t on t.nombre = m.CUPON_TIPO
+    WHERE m.CUPON_NRO IS NOT NULL
+    UNION
+    SELECT DISTINCT
+        m.CUPON_RECLAMO_NRO,
+        m.CUPON_RECLAMO_FECHA_ALTA,
+        m.CUPON_RECLAMO_FECHA_VENCIMIENTO,
+        m.CUPON_RECLAMO_MONTO,
+        t.id,
+        u.id,
+		1
+    FROM gd_esquema.Maestra m
+             JOIN boca_data.USUARIO u on u.dni = m.USUARIO_DNI and
+                                         u.apellido=m.USUARIO_APELLIDO and
+                                         u.nombre = m.USUARIO_NOMBRE
+             JOIN boca_data.CUPON_TIPO t on t.nombre = m.CUPON_RECLAMO_TIPO
+    WHERE m.CUPON_RECLAMO_NRO IS NOT NULL
+
+END
+GO
+
+
+CREATE PROCEDURE boca_data.migrar_reclamo_cupon
+    AS
+		BEGIN
+		INSERT INTO boca_data.RECLAMO_CUPON(reclamo_id,cupon_id)
+		SELECT DISTINCT
+			m.RECLAMO_NRO,
+			c.id
+		FROM gd_esquema.Maestra m
+				 JOIN boca_data.USUARIO u on u.nombre = m.USUARIO_NOMBRE AND
+											 u.apellido = m.USUARIO_APELLIDO AND
+											 u.dni = m.USUARIO_DNI
+				 JOIN boca_data.CUPON c on   c.numero = m.CUPON_RECLAMO_NRO AND
+											 c.usuario_id = u.id			 
+				where m.RECLAMO_NRO IS NOT NULL AND 
+					  m.CUPON_RECLAMO_NRO IS NOT NULL AND
+					  c.es_reclamo = 1
+END
+GO
+
+
+CREATE PROCEDURE boca_data.migrar_cupon_pedido
+    AS
+BEGIN
+	INSERT INTO boca_data.CUPON_PEDIDO(pedido_id,cupon_id)
+	SELECT
+		m.PEDIDO_NRO,
+		c.id
+	FROM gd_esquema.Maestra m
+			 JOIN boca_data.CUPON c on c.numero = m.CUPON_NRO
+	where m.CUPON_NRO IS NOT NULL and
+		c.es_reclamo = 0
+	UNION
+	SELECT
+		m.PEDIDO_NRO,
+		c.id
+	FROM gd_esquema.Maestra m
+			 JOIN boca_data.CUPON c on c.numero = m.CUPON_RECLAMO_NRO 
+	where m.CUPON_RECLAMO_NRO IS NOT NULL and
+		c.es_reclamo = 1
+END
+GO
+
+
+
+
+
+
+
+
 
 COMMIT
 
@@ -1279,13 +1382,16 @@ BEGIN TRY
     EXECUTE boca_data.migrar_horario
     EXECUTE boca_data.migrar_producto
     EXECUTE boca_data.migrar_repartidor
-    EXECUTE boca_data.migrar_cupon
     EXECUTE boca_data.migrar_tarjeta
     EXECUTE boca_data.migrar_medio_de_pago
     EXECUTE boca_data.migrar_envio_mensajeria
     EXECUTE boca_data.migrar_paquete
     EXECUTE boca_data.migrar_pedido
     EXECUTE boca_data.migrar_envio
+    EXECUTE boca_data.migrar_reclamo
+	EXECUTE boca_data.migrar_cupon
+    EXECUTE boca_data.migrar_reclamo_cupon
+	EXECUTE boca_data.migrar_cupon_pedido
 
 
 END TRY
