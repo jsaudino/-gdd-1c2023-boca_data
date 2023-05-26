@@ -156,7 +156,7 @@ CREATE TABLE boca_data.PEDIDO_PRODUCTO(
 --Pedido
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'PEDIDO')
 CREATE TABLE boca_data.PEDIDO(
-                                 numero_pedido decimal(18,0) identity primary key,
+                                 numero_pedido decimal(18,0) primary key,
                                  fecha datetime2(3),
                                  usuario_id decimal(18,0),
                                  local_id decimal(18,0),
@@ -168,7 +168,6 @@ CREATE TABLE boca_data.PEDIDO(
                                  fecha_entrega datetime2(3),
                                  tiempo_estimado decimal(18,2),
                                  calificacion decimal(18,0),
-                                 nro_envio decimal(18,0),
                                  pedido_estado_id decimal(18,0),
                                  medio_de_pago_id decimal(18,0)
 );
@@ -197,7 +196,7 @@ CREATE TABLE boca_data.PAQUETE(
 --Envio de Mensajeria
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'ENVIO_MENSAJERIA')
 CREATE TABLE boca_data.ENVIO_MENSAJERIA(
-                                           nro_envio decimal(18,0) IDENTITY PRIMARY KEY,
+                                           nro_envio decimal(18,0) PRIMARY KEY,
                                            usuario_id decimal(18, 0),
                                            fecha_mensajeria datetime2(3),
                                            direccion_origen nvarchar(255),
@@ -246,7 +245,8 @@ CREATE TABLE boca_data.ENVIO(
                                 direccion_usuario_id decimal(18,0),
                                 precio_envio decimal(18,2),
                                 propina decimal(18,2),
-                                repartidor_id decimal(18,0)
+                                repartidor_id decimal(18,0),
+                                numero_pedido decimal(18,0)
 );
 
 --Operador
@@ -459,9 +459,6 @@ ALTER TABLE boca_data.PEDIDO
                    CONSTRAINT FK_PEDIDO_LOCAL
                        FOREIGN KEY (local_id)
                            REFERENCES boca_data.LOCAL (id),
-                   CONSTRAINT FK_PEDIDO_ENVIO
-                       FOREIGN KEY (nro_envio)
-                           REFERENCES boca_data.ENVIO (nro_envio),
                    CONSTRAINT FK_PEDIDO_ESTADO
                        FOREIGN KEY (pedido_estado_id)
                            REFERENCES boca_data.PEDIDO_ESTADO (id),
@@ -510,7 +507,10 @@ ALTER TABLE boca_data.ENVIO
             REFERENCES boca_data.DIRECCION_USUARIO (id),
         CONSTRAINT FK_ENVIO_REPARTIDOR
             FOREIGN KEY (repartidor_id)
-                REFERENCES boca_data.REPARTIDOR (id);
+                REFERENCES boca_data.REPARTIDOR (id),
+        CONSTRAINT FK_ENVIO_PEDIDO
+            FOREIGN KEY (numero_pedido)
+                REFERENCES boca_data.PEDIDO (numero_pedido);
 
 --Direccion de Usuario -> Usuario
 --Direccion de Usuario -> Localidad
@@ -1013,23 +1013,7 @@ END
 GO
 
 
-CREATE PROCEDURE boca_data.migrar_envio
-AS
-BEGIN
-    INSERT INTO boca_data.ENVIO(direccion_usuario_id,precio_envio,propina,repartidor_id)
-    SELECT DISTINCT
-        du.id,
-        m.PEDIDO_PRECIO_ENVIO,
-        m.PEDIDO_PROPINA,
-        r.id
-    FROM gd_esquema.Maestra m
-             JOIN boca_data.DIRECCION_USUARIO du on  du.nombre = m.DIRECCION_USUARIO_NOMBRE and
-                                                     du.direccion = m.DIRECCION_USUARIO_DIRECCION
-             JOIN boca_data.REPARTIDOR r on r.dni=m.REPARTIDOR_DNI and
-                                            r.apellido = m.REPARTIDOR_APELLIDO and r.nombre=m.REPARTIDOR_NOMBRE
 
-END
-GO
 
 
 CREATE PROCEDURE boca_data.migrar_cupon
@@ -1050,23 +1034,6 @@ END
 GO
 
 
-
-
-
-
---
-CREATE PROCEDURE boca_data.migrar_paquete
-AS
-BEGIN
-    INSERT INTO boca_data.PAQUETE (paquete_tipo_id, precio,nro_envio)
-    SELECT
-        pt.id,
-        m.PAQUETE_TIPO_PRECIO,
-        m.ENVIO_MENSAJERIA_NRO
-    FROM gd_esquema.Maestra m
-             JOIN boca_data.PAQUETE_TIPO pt on pt.nombre = m.PAQUETE_TIPO
-END
-GO
 
 /*
 CREATE FUNCTION boca_data.obtener_localidad_id (@repartidor_nombre nvarchar(255), @repartidor_apellido nvarchar(255), @repartidor_dni decimal(18, 0),
@@ -1172,8 +1139,9 @@ GO
 CREATE PROCEDURE boca_data.migrar_envio_mensajeria
 AS
 BEGIN
-    INSERT INTO boca_data.ENVIO_MENSAJERIA (usuario_id, fecha_mensajeria, direccion_origen, direccion_destino, localidad_id, kilometros, valor_asegurado, observacion, precio_envio, precio_seguro, propina, medio_pago_id, precio_total, envio_estado_id, fecha_entrega, calificacion, repartidor_id, tiempo_estimado)
+    INSERT INTO boca_data.ENVIO_MENSAJERIA (nro_envio, usuario_id, fecha_mensajeria, direccion_origen, direccion_destino, localidad_id, kilometros, valor_asegurado, observacion, precio_envio, precio_seguro, propina, medio_pago_id, precio_total, envio_estado_id, fecha_entrega, calificacion, repartidor_id, tiempo_estimado)
     SELECT DISTINCT
+        m.ENVIO_MENSAJERIA_NRO,
         u.id,
         m.ENVIO_MENSAJERIA_FECHA,
         m.ENVIO_MENSAJERIA_DIR_ORIG,
@@ -1210,6 +1178,78 @@ END
 GO
 
 
+CREATE PROCEDURE boca_data.migrar_paquete
+AS
+BEGIN
+    INSERT INTO boca_data.PAQUETE (paquete_tipo_id, precio,nro_envio)
+    SELECT DISTINCT
+        pt.id,
+        m.PAQUETE_TIPO_PRECIO,
+        m.ENVIO_MENSAJERIA_NRO
+    FROM gd_esquema.Maestra m
+             JOIN boca_data.PAQUETE_TIPO pt on pt.nombre = m.PAQUETE_TIPO
+END
+GO
+
+
+
+CREATE PROCEDURE boca_data.migrar_pedido
+AS
+BEGIN
+    INSERT INTO boca_data.PEDIDO (numero_pedido, fecha, usuario_id, local_id, total_productos, tarifa_servicio, total_cupones, total_servicio, observacion, fecha_entrega, tiempo_estimado, calificacion, pedido_estado_id, medio_de_pago_id)
+    SELECT DISTINCT
+        m.PEDIDO_NRO,
+        m.PEDIDO_FECHA,
+        u.id,
+        loc.id,
+        m.PEDIDO_TOTAL_PRODUCTOS,
+        m.PEDIDO_TARIFA_SERVICIO,
+        m.PEDIDO_TOTAL_CUPONES,
+        m.PEDIDO_TOTAL_SERVICIO,
+        m.PEDIDO_OBSERV,
+        m.PEDIDO_FECHA_ENTREGA,
+        m.PEDIDO_TIEMPO_ESTIMADO_ENTREGA,
+        m.PEDIDO_CALIFICACION,
+        pe.id,
+        mp.id
+    FROM gd_esquema.Maestra m
+             JOIN boca_data.USUARIO u on u.nombre = m.USUARIO_NOMBRE AND
+                                         u.apellido = m.USUARIO_APELLIDO AND
+                                         u.dni = m.USUARIO_DNI
+             JOIN boca_data.TARJETA tarj on tarj.numero = m.MEDIO_PAGO_NRO_TARJETA AND tarj.marca = m.MARCA_TARJETA
+             JOIN boca_data.MEDIO_DE_PAGO_TIPO tipo on m.MEDIO_PAGO_TIPO = tipo.nombre
+             JOIN boca_data.MEDIO_DE_PAGO mp on mp.tarjeta_id = tarj.id and mp.tipo_id = tipo.id
+             JOIN boca_data.PEDIDO_ESTADO pe on pe.nombre = m.PEDIDO_ESTADO
+             JOIN boca_data.LOCAL loc on loc.nombre = m.LOCAL_NOMBRE and
+                                         loc.descripcion = m.LOCAL_DESCRIPCION and
+                                         loc.direccion = m.LOCAL_DIRECCION
+
+    WHERE m.PEDIDO_NRO IS NOT NULL
+END
+GO
+
+
+
+
+CREATE PROCEDURE boca_data.migrar_envio
+AS
+BEGIN
+    INSERT INTO boca_data.ENVIO(direccion_usuario_id,precio_envio,propina,repartidor_id, numero_pedido)
+    SELECT DISTINCT
+        du.id,
+        m.PEDIDO_PRECIO_ENVIO,
+        m.PEDIDO_PROPINA,
+        r.id,
+        m.PEDIDO_NRO
+    FROM gd_esquema.Maestra m
+             JOIN boca_data.DIRECCION_USUARIO du on  du.nombre = m.DIRECCION_USUARIO_NOMBRE and
+                                                     du.direccion = m.DIRECCION_USUARIO_DIRECCION
+             JOIN boca_data.REPARTIDOR r on r.dni=m.REPARTIDOR_DNI and
+                                            r.apellido = m.REPARTIDOR_APELLIDO and r.nombre=m.REPARTIDOR_NOMBRE
+
+END
+GO
+
 COMMIT
 
 
@@ -1239,12 +1279,14 @@ BEGIN TRY
     EXECUTE boca_data.migrar_horario
     EXECUTE boca_data.migrar_producto
     EXECUTE boca_data.migrar_repartidor
-    EXECUTE boca_data.migrar_envio
     EXECUTE boca_data.migrar_cupon
     EXECUTE boca_data.migrar_tarjeta
     EXECUTE boca_data.migrar_medio_de_pago
     EXECUTE boca_data.migrar_envio_mensajeria
-    --EXECUTE boca_data.migrar_paquete
+    EXECUTE boca_data.migrar_paquete
+    EXECUTE boca_data.migrar_pedido
+    EXECUTE boca_data.migrar_envio
+
 
 END TRY
 BEGIN CATCH
