@@ -134,7 +134,8 @@ CREATE TABLE boca_data.DIA(
 --Producto
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'PRODUCTO')
 CREATE TABLE boca_data.PRODUCTO(
-                                   codigo_producto nvarchar(50) primary key,
+                                   id decimal(18,0) IDENTITY PRIMARY KEY,
+                                   codigo_producto nvarchar(50),
                                    nombre nvarchar(50),
                                    descripcion nvarchar(255),
                                    precio decimal(18,2),
@@ -144,12 +145,12 @@ CREATE TABLE boca_data.PRODUCTO(
 --Pedido_Producto
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'PEDIDO_PRODUCTO')
 CREATE TABLE boca_data.PEDIDO_PRODUCTO(
-                                          producto_codigo nvarchar(50),
+                                          producto_id decimal(18,0),
                                           pedido_numero decimal(18,0),
                                           cantidad_productos decimal(18,0),
                                           precio_unitario decimal(18,2),
                                           total_producto decimal(18,2),
-                                          primary key(producto_codigo, pedido_numero)
+                                          primary key(producto_id, pedido_numero)
 );
 
 --Pedido
@@ -189,7 +190,8 @@ IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'PAQUETE')
 CREATE TABLE boca_data.PAQUETE(
                                   id decimal(18,0) IDENTITY PRIMARY KEY,
                                   paquete_tipo_id decimal(18, 0),
-                                  precio decimal(18, 2)
+                                  precio decimal(18, 2),
+                                  nro_envio decimal(18,0)
 );
 
 --Envio de Mensajeria
@@ -212,7 +214,6 @@ CREATE TABLE boca_data.ENVIO_MENSAJERIA(
                                            envio_estado_id decimal(18, 0),
                                            fecha_entrega datetime2(3),
                                            calificacion decimal(18, 0),
-                                           paquete_id decimal(18, 0),
                                            repartidor_id decimal(18, 0),
                                            tiempo_estimado decimal(18, 2)
 );
@@ -440,8 +441,8 @@ ALTER TABLE boca_data.PRODUCTO
 --Pedido_Producto -> Pedido
 ALTER TABLE boca_data.PEDIDO_PRODUCTO
     WITH CHECK ADD CONSTRAINT FK_PEDIDO_PRODUCTO_PRODUCTO
-	FOREIGN KEY(producto_codigo)
-    REFERENCES boca_data.PRODUCTO (codigo_producto),
+	FOREIGN KEY(producto_id)
+    REFERENCES boca_data.PRODUCTO (id),
     CONSTRAINT FK_PEDIDO_PRODUCTO_PEDIDO
 	FOREIGN KEY (pedido_numero)
     REFERENCES boca_data.PEDIDO (numero_pedido);
@@ -468,18 +469,21 @@ ALTER TABLE boca_data.PEDIDO
 	FOREIGN KEY (medio_de_pago_id)
     REFERENCES boca_data.MEDIO_DE_PAGO (id);
 
---CHECK!
 --Paquete -> Tipo de Paquete
+--Envio de Mensajeria -> Paquete
+
 ALTER TABLE boca_data.PAQUETE
 	WITH CHECK ADD CONSTRAINT FK_PAQUETE_PAQUETE_TIPO
 	FOREIGN KEY(paquete_tipo_id)
-	REFERENCES boca_data.PAQUETE_TIPO (id);
+	REFERENCES boca_data.PAQUETE_TIPO (id),
+    CONSTRAINT FK_PAQUETE_ENVIO_MENSAJERIA
+    FOREIGN KEY(nro_envio)
+    REFERENCES boca_data.ENVIO_MENSAJERIA (nro_envio);
 
 --Envio de Mensajeria -> Usuario
 --Envio de Mensajeria -> Localidad
 --Envio de Mensajeria -> Medio de Pago
 --Envio de Mensajeria -> Estado de Envio
---Envio de Mensajeria -> Paquete
 --Envio de Mensajeria -> Repartidor
 ALTER TABLE boca_data.ENVIO_MENSAJERIA
     WITH CHECK ADD CONSTRAINT FK_ENVIO_MENSAJERIA_USUARIO
@@ -494,9 +498,6 @@ ALTER TABLE boca_data.ENVIO_MENSAJERIA
     CONSTRAINT FK_ENVIO_MENSAJERIA_ENVIO_ESTADO
 	FOREIGN KEY (envio_estado_id)
 	REFERENCES boca_data.ENVIO_ESTADO (id),
-    CONSTRAINT FK_ENVIO_MENSAJERIA_PAQUETE
-	FOREIGN KEY (paquete_id)
-	REFERENCES boca_data.PAQUETE (id),
     CONSTRAINT FK_ENVIO_MENSAJERIA_REPARTIDOR
 	FOREIGN KEY (repartidor_id)
 	REFERENCES boca_data.REPARTIDOR (id);
@@ -604,8 +605,6 @@ COMMIT TRANSACTION
 BEGIN TRANSACTION
 
 --Tipo de Local
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_local_tipo')
-	DROP PROCEDURE boca_data.migrar_local_tipo
 GO
 CREATE PROCEDURE boca_data.migrar_local_tipo
  AS
@@ -619,9 +618,6 @@ GO
 --delete from boca_data.LOCAL_TIPO
 --select * from boca_data.LOCAL_TIPO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_provincia')
-	DROP PROCEDURE boca_data.migrar_provincia
-GO
 CREATE PROCEDURE boca_data.migrar_provincia
  AS
   BEGIN
@@ -629,15 +625,20 @@ CREATE PROCEDURE boca_data.migrar_provincia
 	SELECT DISTINCT LOCAL_PROVINCIA
 	FROM gd_esquema.Maestra
 	WHERE LOCAL_PROVINCIA IS NOT NULL
+    union
+    SELECT DISTINCT ENVIO_MENSAJERIA_PROVINCIA
+    FROM gd_esquema.Maestra
+    WHERE ENVIO_MENSAJERIA_PROVINCIA IS NOT NULL
+    union
+    SELECT DISTINCT DIRECCION_USUARIO_PROVINCIA
+    FROM gd_esquema.Maestra
+    WHERE DIRECCION_USUARIO_PROVINCIA IS NOT NULL
   END
 GO
 
 --select distinct LOCAL_PROVINCIA from gd_esquema.Maestra
 --select * from boca_data.PROVINCIA
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_dia')
-	DROP PROCEDURE boca_data.migrar_dia
-GO
 CREATE PROCEDURE boca_data.migrar_dia
  AS
   BEGIN
@@ -651,9 +652,6 @@ GO
 --select distinct HORARIO_LOCAL_DIA from gd_esquema.Maestra
 --select * from boca_data.DIA
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_tipo_movilidad')
-	DROP PROCEDURE boca_data.migrar_tipo_movilidad
-GO
 CREATE PROCEDURE boca_data.migrar_tipo_movilidad
  AS
   BEGIN
@@ -668,9 +666,6 @@ GO
 --select distinct REPARTIDOR_TIPO_MOVILIDAD from gd_esquema.Maestra
 --select * from boca_data.TIPO_MOVILIDAD
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_cupon_tipo')
-	DROP PROCEDURE boca_data.migrar_cupon_tipo
-GO
 CREATE PROCEDURE boca_data.migrar_cupon_tipo
  AS
   BEGIN
@@ -685,9 +680,6 @@ GO
 --select distinct CUPON_TIPO from gd_esquema.Maestra
 --select * from boca_data.CUPON_TIPO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_medio_de_pago_tipo')
-	DROP PROCEDURE boca_data.migrar_medio_de_pago_tipo
-GO
 CREATE PROCEDURE boca_data.migrar_medio_de_pago_tipo
  AS
   BEGIN
@@ -700,9 +692,6 @@ GO
 --select distinct MEDIO_PAGO_TIPO from gd_esquema.Maestra
 --select * from boca_data.MEDIO_DE_PAGO_TIPO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_pedido_estado')
-	DROP PROCEDURE boca_data.migrar_pedido_estado
-GO
 CREATE PROCEDURE boca_data.migrar_pedido_estado
  AS
   BEGIN
@@ -717,9 +706,6 @@ GO
 --select distinct PEDIDO_ESTADO from gd_esquema.Maestra
 --select * from boca_data.PEDIDO_ESTADO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_reclamo_tipo')
-	DROP PROCEDURE boca_data.migrar_reclamo_tipo
-GO
 CREATE PROCEDURE boca_data.migrar_reclamo_tipo
  AS
   BEGIN
@@ -734,11 +720,6 @@ GO
 --select distinct RECLAMO_TIPO from gd_esquema.Maestra
 --select * from boca_data.RECLAMO_TIPO
 
-
-
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_reclamo_estado')
-	DROP PROCEDURE boca_data.migrar_reclamo_estado
-GO
 CREATE PROCEDURE boca_data.migrar_reclamo_estado
  AS
   BEGIN
@@ -753,11 +734,6 @@ GO
 --select distinct RECLAMO_ESTADO from gd_esquema.Maestra
 --select * from boca_data.RECLAMO_ESTADO
 
-
-
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_envio_estado')
-	DROP PROCEDURE boca_data.migrar_envio_estado
-GO
 CREATE PROCEDURE boca_data.migrar_envio_estado
  AS
   BEGIN
@@ -772,10 +748,6 @@ GO
 --select distinct ENVIO_MENSAJERIA_ESTADO from gd_esquema.Maestra
 --select * from boca_data.ENVIO_ESTADO
 
-
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_usuario')
-	DROP PROCEDURE boca_data.migrar_usuario
-GO
 CREATE PROCEDURE boca_data.migrar_usuario
  AS
   BEGIN
@@ -789,9 +761,6 @@ GO
 --select distinct USUARIO_NOMBRE, USUARIO_APELLIDO, USUARIO_DNI, USUARIO_FECHA_REGISTRO, USUARIO_TELEFONO, USUARIO_MAIL, USUARIO_FECHA_NAC from gd_esquema.Maestra
 --select * from boca_data.USUARIO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_paquete_tipo')
-	DROP PROCEDURE boca_data.migrar_paquete_tipo
-GO
 CREATE PROCEDURE boca_data.migrar_paquete_tipo
  AS
   BEGIN
@@ -806,9 +775,6 @@ GO
 --select distinct PAQUETE_TIPO, PAQUETE_TIPO_PRECIO, PAQUETE_ALTO_MAX, PAQUETE_ANCHO_MAX, PAQUETE_PESO_MAX, PAQUETE_LARGO_MAX from gd_esquema.Maestra
 --select * from boca_data.PAQUETE_TIPO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'boca_data.migrar_operador')
-	DROP PROCEDURE boca_data.migrar_operador
-GO
 CREATE PROCEDURE boca_data.migrar_operador
  AS
   BEGIN
@@ -822,33 +788,353 @@ GO
 --delete from boca_data.OPERADOR
 --select distinct OPERADOR_RECLAMO_NOMBRE, OPERADOR_RECLAMO_APELLIDO, OPERADOR_RECLAMO_DNI, OPERADOR_RECLAMO_TELEFONO, OPERADOR_RECLAMO_MAIL, OPERADOR_RECLAMO_FECHA_NAC, OPERADOR_RECLAMO_DIRECCION from gd_esquema.Maestra
 --select * from boca_data.OPERADOR
+CREATE PROCEDURE boca_data.migrar_paquete
+AS
+    BEGIN
+        INSERT INTO boca_data.PAQUETE (paquete_tipo_id, precio,nro_envio)
+        SELECT
+            pt.id,
+            m.PAQUETE_TIPO_PRECIO,
+            m.ENVIO_MENSAJERIA_NRO
+        FROM gd_esquema.Maestra m
+        JOIN boca_data.PAQUETE_TIPO pt on pt.nombre = m.PAQUETE_TIPO
+    END
+GO
+
+
+CREATE PROCEDURE boca_data.migrar_localidad
+AS
+    BEGIN
+        INSERT INTO boca_data.LOCALIDAD (provincia_id, nombre)
+        SELECT DISTINCT
+            p.id,
+            m.ENVIO_MENSAJERIA_LOCALIDAD
+        FROM gd_esquema.Maestra m
+                 JOIN boca_data.PROVINCIA p on p.nombre = m.ENVIO_MENSAJERIA_PROVINCIA
+        WHERE ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL
+        union
+        SELECT DISTINCT
+            p.id,
+            m.LOCAL_LOCALIDAD
+        FROM gd_esquema.Maestra m
+                 JOIN boca_data.PROVINCIA p on p.nombre = m.LOCAL_PROVINCIA
+        WHERE LOCAL_LOCALIDAD IS NOT NULL
+        union
+        SELECT DISTINCT
+            p.id,
+            m.DIRECCION_USUARIO_LOCALIDAD
+        FROM gd_esquema.Maestra m
+                 JOIN boca_data.PROVINCIA p on p.nombre = m.DIRECCION_USUARIO_PROVINCIA
+        WHERE DIRECCION_USUARIO_LOCALIDAD IS NOT NULL
+
+    END
+GO
+
+
+CREATE PROCEDURE boca_data.migrar_direccion_usuario
+AS
+    BEGIN
+        INSERT INTO boca_data.DIRECCION_USUARIO (usuario_id, nombre, direccion, localidad_id)
+        SELECT DISTINCT
+            u.id,
+            m.DIRECCION_USUARIO_NOMBRE,
+            m.DIRECCION_USUARIO_DIRECCION,
+            l.id
+        FROM gd_esquema.Maestra m
+                 JOIN boca_data.USUARIO u on u.apellido = m.USUARIO_APELLIDO and
+                                             u.dni = m.USUARIO_DNI and
+                                             u.fecha_nacimiento = m.USUARIO_FECHA_NAC and
+                                             u.fecha_registro = m.USUARIO_FECHA_REGISTRO and
+                                             u.mail = m.USUARIO_MAIL and
+                                             u.nombre = m.USUARIO_NOMBRE and
+                                             u.telefono = m.USUARIO_TELEFONO
+                 JOIN boca_data.LOCALIDAD l on l.nombre = m.DIRECCION_USUARIO_LOCALIDAD
+        WHERE DIRECCION_USUARIO_LOCALIDAD IS NOT NULL
+    END
+GO
+
+CREATE PROCEDURE boca_data.crear_categorias_mercado
+AS
+    BEGIN
+        INSERT INTO boca_data.CATEGORIA (nombre, tipo_id)
+        SELECT
+        'Kiosco',
+        lt.id
+        FROM boca_data.LOCAL_TIPO lt
+        WHERE lt.nombre = 'Tipo Local Mercado'
+
+        INSERT INTO boca_data.CATEGORIA (nombre, tipo_id)
+        SELECT
+            'Supermercado',
+            lt.id
+        FROM boca_data.LOCAL_TIPO lt
+        WHERE lt.nombre = 'Tipo Local Mercado'
+
+        INSERT INTO boca_data.CATEGORIA (nombre, tipo_id)
+        SELECT
+            'Minimercado',
+            lt.id
+        FROM boca_data.LOCAL_TIPO lt
+        WHERE lt.nombre = 'Tipo Local Mercado'
+
+    END
+GO
+
+
+CREATE PROCEDURE boca_data.crear_categorias_restaurante
+AS
+    BEGIN
+        INSERT INTO boca_data.CATEGORIA (nombre, tipo_id)
+        SELECT
+            'Parrilla',
+            lt.id
+        FROM boca_data.LOCAL_TIPO lt
+        WHERE lt.nombre = 'Tipo Local Restaurante'
+
+        INSERT INTO boca_data.CATEGORIA (nombre, tipo_id)
+        SELECT
+            'Cafeteria',
+            lt.id
+        FROM boca_data.LOCAL_TIPO lt
+        WHERE lt.nombre = 'Tipo Local Restaurante'
+
+        INSERT INTO boca_data.CATEGORIA (nombre, tipo_id)
+        SELECT
+            'Heladeria',
+            lt.id
+        FROM boca_data.LOCAL_TIPO lt
+        WHERE lt.nombre = 'Tipo Local Restaurante'
+
+        INSERT INTO boca_data.CATEGORIA (nombre, tipo_id)
+        SELECT
+            'Comidas Rapidas',
+            lt.id
+        FROM boca_data.LOCAL_TIPO lt
+        WHERE lt.nombre = 'Tipo Local Restaurante'
+    END
+GO
+
+
+CREATE PROCEDURE boca_data.migrar_local
+AS
+    BEGIN
+        INSERT INTO boca_data.LOCAL (nombre, descripcion, direccion, localidad_id, categoria_id)
+        SELECT DISTINCT
+            m.LOCAL_NOMBRE,
+            m.LOCAL_DESCRIPCION,
+            m.LOCAL_DIRECCION,
+            l.id,
+            ( SELECT TOP 1 id FROM boca_data.CATEGORIA WHERE tipo_id = lt.id ORDER BY nombre)
+
+            FROM gd_esquema.Maestra m
+                JOIN boca_data.LOCALIDAD l on  l.nombre = m.LOCAL_LOCALIDAD
+                JOIN boca_data.LOCAL_TIPO lt on lt.nombre = m.LOCAL_TIPO
+        WHERE m.LOCAL_NOMBRE IS NOT NULL
+    END
+GO
+
+
+CREATE PROCEDURE boca_data.migrar_horario
+AS
+    BEGIN
+        INSERT INTO boca_data.HORARIO (dia, hora_apertura, hora_cierre, local_id)
+        SELECT DISTINCT
+            d.id,
+            m.HORARIO_LOCAL_HORA_APERTURA,
+            m.HORARIO_LOCAL_HORA_CIERRE,
+            l.id
+        FROM gd_esquema.Maestra m
+                 JOIN boca_data.LOCAL l on  l.nombre = m.LOCAL_NOMBRE and
+                                            l.descripcion = m.LOCAL_DESCRIPCION and
+                                            l.direccion = m.LOCAL_DIRECCION
+                 JOIN boca_data.DIA d on d.nombre = m.HORARIO_LOCAL_DIA
+        WHERE m.LOCAL_NOMBRE IS NOT NULL
+    END
+GO
+
+
+CREATE PROCEDURE boca_data.migrar_producto
+AS
+BEGIN
+    INSERT INTO boca_data.PRODUCTO (codigo_producto, nombre, descripcion, precio, local_id)
+    SELECT DISTINCT
+        m.PRODUCTO_LOCAL_CODIGO,
+        m.PRODUCTO_LOCAL_NOMBRE,
+        m.PRODUCTO_LOCAL_DESCRIPCION,
+        m.PRODUCTO_LOCAL_PRECIO,
+        l.id
+    FROM gd_esquema.Maestra m
+             JOIN boca_data.LOCAL l on  l.nombre = m.LOCAL_NOMBRE and
+                                        l.descripcion = m.LOCAL_DESCRIPCION and
+                                        l.direccion = m.LOCAL_DIRECCION
+    WHERE m.PRODUCTO_LOCAL_CODIGO IS NOT NULL
+END
+GO
+
+
+
+
+
+/* MOVER DE ACA */
+
+
+-- traerse de la tabla maestra las fechas de PEDIDO y ENVIO_MENSAJERIA para ese repartidor
+-- elegir la última, con eso nos quedamos una localidad(nombre)
+-- y traemos de la tabla LOCALIDAD el id
+
+
+
+CREATE PROCEDURE boca_data.migrar_repartidor
+AS
+BEGIN
+    INSERT INTO boca_data.REPARTIDOR (nombre, apellido, dni, telefono, direccion, email, fecha_nacimiento, movilidad_id, localidad_id)
+    SELECT DISTINCT
+        REPARTIDOR_NOMBRE,
+        REPARTIDOR_APELLIDO,
+        REPARTIDOR_DNI,
+        REPARTIDOR_TELEFONO,
+        REPARTIDOR_DIRECION,
+        REPARTIDOR_EMAIL,
+        REPARTIDOR_FECHA_NAC,
+        mov.id,
+        loc.id
+    from
+        (SELECT DISTINCT
+             isnull(LOCAL_LOCALIDAD,
+                    ENVIO_MENSAJERIA_LOCALIDAD) as localidad,
+             isnull([PEDIDO_FECHA], ENVIO_MENSAJERIA_FECHA) as fecha,
+             isnull(LOCAL_PROVINCIA, ENVIO_MENSAJERIA_PROVINCIA) as provincia,
+             [PEDIDO_FECHA],
+             ENVIO_MENSAJERIA_FECHA,
+             LOCAL_LOCALIDAD,
+             ENVIO_MENSAJERIA_LOCALIDAD,
+             REPARTIDOR_APELLIDO,
+             REPARTIDOR_NOMBRE,
+             REPARTIDOR_DNI,
+             REPARTIDOR_TELEFONO,
+             REPARTIDOR_DIRECION,
+             REPARTIDOR_EMAIL,
+             REPARTIDOR_FECHA_NAC,
+             REPARTIDOR_TIPO_MOVILIDAD movilidad,
+             ROW_NUMBER() OVER (PARTITION BY REPARTIDOR_DNI,REPARTIDOR_APELLIDO, REPARTIDOR_NOMBRE ORDER BY isnull([PEDIDO_FECHA], ENVIO_MENSAJERIA_FECHA) DESC) rownum
+         FROM gd_esquema.Maestra) as FECHAS
+            JOIN boca_data.LOCALIDAD loc on loc.nombre = localidad
+            JOIN boca_data.PROVINCIA pro on pro.nombre = provincia and loc.provincia_id = pro.id
+            JOIN boca_data.TIPO_MOVILIDAD mov on mov.nombre = movilidad
+    where rownum=1
+END
+GO
+
+
+
+
+/*
+CREATE FUNCTION boca_data.obtener_localidad_id (@repartidor_nombre nvarchar(255), @repartidor_apellido nvarchar(255), @repartidor_dni decimal(18, 0),
+@ENVIO_MENSAJERIA_FECHA datetime, @PEDIDO_FECHA datetime)
+    returns decimal(18,0)
+AS
+BEGIN
+	DECLARE @fecha datetime =
+			CASE WHEN @ENVIO_MENSAJERIA_FECHA  >  @PEDIDO_FECHA THEN @ENVIO_MENSAJERIA_FECHA
+			ELSE @PEDIDO_FECHA
+		END
+	DECLARE @localidad_nombre nvarchar(255);
+	DECLARE @provincia_nombre nvarchar(255);
+
+
+	SELECT TOP 1 @localidad_nombre =
+			CASE WHEN ISNULL(ENVIO_MENSAJERIA_FECHA, 0)  >  ISNULL(PEDIDO_FECHA,0) THEN ENVIO_MENSAJERIA_LOCALIDAD
+			ELSE LOCAL_LOCALIDAD
+		END,
+		@provincia_nombre =
+			CASE WHEN ISNULL(ENVIO_MENSAJERIA_FECHA, 0)  >  ISNULL(PEDIDO_FECHA,0) THEN ENVIO_MENSAJERIA_PROVINCIA
+			ELSE LOCAL_PROVINCIA
+		END
+		FROM gd_esquema.Maestra m
+		WHERE m.REPARTIDOR_NOMBRE = @repartidor_nombre AND m.REPARTIDOR_APELLIDO = @repartidor_apellido AND m.REPARTIDOR_DNI = @repartidor_dni
+		AND (m.ENVIO_MENSAJERIA_FECHA = @fecha OR m.PEDIDO_FECHA = @fecha)
+			AND (ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL OR LOCAL_LOCALIDAD IS NOT NULL)
+
+	return
+	(
+		SELECT l.id FROM boca_data.LOCALIDAD l
+		JOIN boca_data.PROVINCIA p ON p.id = l.provincia_id
+		WHERE l.nombre = @localidad_nombre AND p.nombre = @provincia_nombre
+	)
+END
+GO
+
+CREATE PROCEDURE boca_data.migrar_repartidor
+AS
+BEGIN
+    INSERT INTO boca_data.REPARTIDOR (nombre, apellido, dni, telefono, direccion, email, fecha_nacimiento, movilidad_id, localidad_id)
+	SELECT DISTINCT
+        m.REPARTIDOR_NOMBRE,
+        m.REPARTIDOR_APELLIDO,
+        m.REPARTIDOR_DNI,
+        m.REPARTIDOR_TELEFONO,
+        m.REPARTIDOR_DIRECION,
+        m.REPARTIDOR_EMAIL,
+        m.REPARTIDOR_FECHA_NAC,
+        mov.id
+		,(SELECT boca_data.obtener_localidad_id(m.REPARTIDOR_NOMBRE, m.REPARTIDOR_APELLIDO, m.REPARTIDOR_DNI,MAX(ENVIO_MENSAJERIA_FECHA), MAX(PEDIDO_FECHA)))
+
+    FROM gd_esquema.Maestra m
+
+    JOIN boca_data.TIPO_MOVILIDAD mov on mov.nombre = m.REPARTIDOR_TIPO_MOVILIDAD
+    WHERE m.REPARTIDOR_NOMBRE IS NOT NULL
+
+	GROUP BY m.REPARTIDOR_NOMBRE,
+        m.REPARTIDOR_APELLIDO,
+        m.REPARTIDOR_DNI,
+        m.REPARTIDOR_TELEFONO,
+        m.REPARTIDOR_DIRECION,
+        m.REPARTIDOR_EMAIL,
+        m.REPARTIDOR_FECHA_NAC,
+        mov.id
+END
+GO
+
+TIEMPO: 1m 06
+*/
 
 
 COMMIT
+
 
 
 --------------------------------------- M I G R A C I O N ---------------------------------------
 
 BEGIN TRANSACTION
-	BEGIN TRY
-		EXECUTE boca_data.migrar_local_tipo
-		EXECUTE boca_data.migrar_provincia
-		EXECUTE boca_data.migrar_dia
-		EXECUTE boca_data.migrar_tipo_movilidad
-		EXECUTE boca_data.migrar_cupon_tipo
-		EXECUTE boca_data.migrar_medio_de_pago_tipo
-		EXECUTE boca_data.migrar_pedido_estado
-		EXECUTE boca_data.migrar_reclamo_tipo
-		EXECUTE boca_data.migrar_reclamo_estado
-		EXECUTE boca_data.migrar_envio_estado
-		EXECUTE boca_data.migrar_usuario
-		EXECUTE boca_data.migrar_paquete_tipo
-		EXECUTE boca_data.migrar_operador
-		
-		
-	END TRY
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-		THROW 50001, 'Error al migrar todoo', 1;
-	END CATCH
+    BEGIN TRY
+        EXECUTE boca_data.migrar_local_tipo
+        EXECUTE boca_data.migrar_provincia
+        EXECUTE boca_data.migrar_dia
+        EXECUTE boca_data.migrar_tipo_movilidad
+        EXECUTE boca_data.migrar_cupon_tipo
+        EXECUTE boca_data.migrar_medio_de_pago_tipo
+        EXECUTE boca_data.migrar_pedido_estado
+        EXECUTE boca_data.migrar_reclamo_tipo
+        EXECUTE boca_data.migrar_reclamo_estado
+        EXECUTE boca_data.migrar_envio_estado
+        EXECUTE boca_data.migrar_usuario
+        EXECUTE boca_data.migrar_paquete_tipo
+        EXECUTE boca_data.migrar_operador
+        EXECUTE boca_data.migrar_localidad
+        EXECUTE boca_data.migrar_direccion_usuario
+        EXECUTE boca_data.crear_categorias_restaurante
+        EXECUTE boca_data.crear_categorias_mercado
+        EXECUTE boca_data.migrar_local
+        EXECUTE boca_data.migrar_horario
+        EXECUTE boca_data.migrar_producto
+        EXECUTE boca_data.migrar_repartidor
+
+        --EXECUTE boca_data.migrar_paquete
+
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW 50001, 'Error al migrar todoooooooooo aaaaaaaaaaaah', 1;
+    END CATCH
 COMMIT
+
