@@ -604,8 +604,6 @@ COMMIT TRANSACTION
 
 --------------------------------------- C R E A C I O N   S P ---------------------------------------
 
-BEGIN TRANSACTION
-
 --Tipo de Local
 GO
 CREATE PROCEDURE boca_data.migrar_local_tipo
@@ -962,7 +960,42 @@ END
 GO
 
 
+CREATE FUNCTION boca_data.obtener_localidad_id (@repartidor_nombre nvarchar(255), @repartidor_apellido nvarchar(255), @repartidor_dni decimal(18, 0),
+                                                @ENVIO_MENSAJERIA_FECHA datetime, @PEDIDO_FECHA datetime)
+    returns decimal(18,0)
+AS
+BEGIN
 
+    DECLARE @localidad_nombre nvarchar(255);
+    DECLARE @provincia_nombre nvarchar(255);
+
+    IF (ISNULL(@ENVIO_MENSAJERIA_FECHA, 0)  >  ISNULL(@PEDIDO_FECHA,0))
+        BEGIN
+            SELECT TOP 1 @localidad_nombre = m.ENVIO_MENSAJERIA_LOCALIDAD ,
+                         @provincia_nombre =  m.ENVIO_MENSAJERIA_PROVINCIA
+            FROM gd_esquema.Maestra m
+            WHERE m.REPARTIDOR_NOMBRE = @repartidor_nombre AND m.REPARTIDOR_APELLIDO = @repartidor_apellido AND m.REPARTIDOR_DNI = @repartidor_dni
+              AND m.ENVIO_MENSAJERIA_FECHA = @ENVIO_MENSAJERIA_FECHA
+              AND ENVIO_MENSAJERIA_LOCALIDAD IS NOT NULL
+        end
+    ELSE
+        BEGIN
+            SELECT TOP 1 @localidad_nombre = m.LOCAL_LOCALIDAD ,
+                         @provincia_nombre =  m.LOCAL_PROVINCIA
+            FROM gd_esquema.Maestra m
+            WHERE m.REPARTIDOR_NOMBRE = @repartidor_nombre AND m.REPARTIDOR_APELLIDO = @repartidor_apellido AND m.REPARTIDOR_DNI = @repartidor_dni
+              AND m.PEDIDO_FECHA = @PEDIDO_FECHA
+              AND LOCAL_LOCALIDAD IS NOT NULL
+        end
+
+    return
+        (
+            SELECT l.id FROM boca_data.LOCALIDAD l
+                                 JOIN boca_data.PROVINCIA p ON p.id = l.provincia_id
+            WHERE l.nombre = @localidad_nombre AND p.nombre = @provincia_nombre
+        )
+END
+GO
 
 
 CREATE PROCEDURE boca_data.migrar_repartidor
@@ -970,43 +1003,31 @@ AS
 BEGIN
     INSERT INTO boca_data.REPARTIDOR (nombre, apellido, dni, telefono, direccion, email, fecha_nacimiento, movilidad_id, localidad_id)
     SELECT DISTINCT
-        REPARTIDOR_NOMBRE,
-        REPARTIDOR_APELLIDO,
-        REPARTIDOR_DNI,
-        REPARTIDOR_TELEFONO,
-        REPARTIDOR_DIRECION,
-        REPARTIDOR_EMAIL,
-        REPARTIDOR_FECHA_NAC,
+        m.REPARTIDOR_NOMBRE,
+        m.REPARTIDOR_APELLIDO,
+        m.REPARTIDOR_DNI,
+        m.REPARTIDOR_TELEFONO,
+        m.REPARTIDOR_DIRECION,
+        m.REPARTIDOR_EMAIL,
+        m.REPARTIDOR_FECHA_NAC,
         mov.id,
-        loc.id
-    from
-        (SELECT DISTINCT
-             isnull(LOCAL_LOCALIDAD,
-                    ENVIO_MENSAJERIA_LOCALIDAD) as localidad,
-             isnull([PEDIDO_FECHA], ENVIO_MENSAJERIA_FECHA) as fecha,
-             isnull(LOCAL_PROVINCIA, ENVIO_MENSAJERIA_PROVINCIA) as provincia,
-             [PEDIDO_FECHA],
-             ENVIO_MENSAJERIA_FECHA,
-             LOCAL_LOCALIDAD,
-             ENVIO_MENSAJERIA_LOCALIDAD,
-             REPARTIDOR_APELLIDO,
-             REPARTIDOR_NOMBRE,
-             REPARTIDOR_DNI,
-             REPARTIDOR_TELEFONO,
-             REPARTIDOR_DIRECION,
-             REPARTIDOR_EMAIL,
-             REPARTIDOR_FECHA_NAC,
-             REPARTIDOR_TIPO_MOVILIDAD movilidad,
-             ROW_NUMBER() OVER (PARTITION BY REPARTIDOR_DNI,REPARTIDOR_APELLIDO, REPARTIDOR_NOMBRE ORDER BY isnull([PEDIDO_FECHA], ENVIO_MENSAJERIA_FECHA) DESC) rownum
-         FROM gd_esquema.Maestra) as FECHAS
-            JOIN boca_data.LOCALIDAD loc on loc.nombre = localidad
-            JOIN boca_data.PROVINCIA pro on pro.nombre = provincia and loc.provincia_id = pro.id
-            JOIN boca_data.TIPO_MOVILIDAD mov on mov.nombre = movilidad
-    where rownum=1
+        (SELECT boca_data.obtener_localidad_id(m.REPARTIDOR_NOMBRE, m.REPARTIDOR_APELLIDO, m.REPARTIDOR_DNI,MAX(m.ENVIO_MENSAJERIA_FECHA), MAX(m.PEDIDO_FECHA)))
+
+    FROM gd_esquema.Maestra m
+
+             JOIN boca_data.TIPO_MOVILIDAD mov on mov.nombre = m.REPARTIDOR_TIPO_MOVILIDAD
+    WHERE m.REPARTIDOR_NOMBRE IS NOT NULL
+
+    GROUP BY m.REPARTIDOR_NOMBRE,
+             m.REPARTIDOR_APELLIDO,
+             m.REPARTIDOR_DNI,
+             m.REPARTIDOR_TELEFONO,
+             m.REPARTIDOR_DIRECION,
+             m.REPARTIDOR_EMAIL,
+             m.REPARTIDOR_FECHA_NAC,
+             mov.id
 END
 GO
-
-
 
 
 CREATE PROCEDURE boca_data.migrar_tarjeta
@@ -1046,7 +1067,9 @@ BEGIN
     INSERT INTO boca_data.ENVIO_MENSAJERIA (nro_envio, usuario_id, fecha_mensajeria, direccion_origen, direccion_destino, localidad_id, kilometros, valor_asegurado, observacion, precio_envio, precio_seguro, propina, medio_pago_id, precio_total, envio_estado_id, fecha_entrega, calificacion, repartidor_id, tiempo_estimado)
     SELECT DISTINCT
         m.ENVIO_MENSAJERIA_NRO,
-        u.id,
+        (SELECT id FROM boca_data.USUARIO u WHERE u.nombre = m.USUARIO_NOMBRE AND
+                                                    u.apellido = m.USUARIO_APELLIDO AND
+                                                    u.dni = m.USUARIO_DNI),
         m.ENVIO_MENSAJERIA_FECHA,
         m.ENVIO_MENSAJERIA_DIR_ORIG,
         m.ENVIO_MENSAJERIA_DIR_DEST,
@@ -1062,21 +1085,17 @@ BEGIN
         ee.id,
         m.ENVIO_MENSAJERIA_FECHA_ENTREGA,
         m.ENVIO_MENSAJERIA_CALIFICACION,
-        r.id,
+        (SELECT id FROM boca_data.REPARTIDOR r WHERE r.dni=m.REPARTIDOR_DNI and
+                                                    r.apellido = m.REPARTIDOR_APELLIDO and
+                                                    r.nombre=m.REPARTIDOR_NOMBRE),
         m.ENVIO_MENSAJERIA_TIEMPO_ESTIMADO
     FROM gd_esquema.Maestra m
-             JOIN boca_data.USUARIO u on u.nombre = m.USUARIO_NOMBRE AND
-                                         u.apellido = m.USUARIO_APELLIDO AND
-                                         u.dni = m.USUARIO_DNI
              JOIN boca_data.PROVINCIA p on  p.nombre = m.ENVIO_MENSAJERIA_PROVINCIA
              JOIN boca_data.LOCALIDAD l on  l.nombre = m.ENVIO_MENSAJERIA_LOCALIDAD and l.provincia_id=p.id
              JOIN boca_data.TARJETA tarj on tarj.numero = m.MEDIO_PAGO_NRO_TARJETA AND tarj.marca = m.MARCA_TARJETA
              JOIN boca_data.MEDIO_DE_PAGO_TIPO tipo on m.MEDIO_PAGO_TIPO = tipo.nombre
              JOIN boca_data.MEDIO_DE_PAGO mp on mp.tarjeta_id = tarj.id and mp.tipo_id = tipo.id
              JOIN boca_data.ENVIO_ESTADO ee on ee.nombre = m.ENVIO_MENSAJERIA_ESTADO
-             JOIN boca_data.REPARTIDOR r on r.dni=m.REPARTIDOR_DNI and
-                                            r.apellido = m.REPARTIDOR_APELLIDO and
-                                            r.nombre=m.REPARTIDOR_NOMBRE
     WHERE m.ENVIO_MENSAJERIA_NRO IS NOT NULL
 END
 GO
@@ -1104,7 +1123,7 @@ BEGIN
     SELECT DISTINCT
         m.PEDIDO_NRO,
         m.PEDIDO_FECHA,
-        u.id,
+        (SELECT id FROM boca_data.USUARIO u WHERE u.dni = m.USUARIO_DNI),
         loc.id,
         m.PEDIDO_TOTAL_PRODUCTOS,
         m.PEDIDO_TARIFA_SERVICIO,
@@ -1117,18 +1136,14 @@ BEGIN
         pe.id,
         mp.id
     FROM gd_esquema.Maestra m
-             JOIN boca_data.USUARIO u on u.nombre = m.USUARIO_NOMBRE AND
-                                         u.apellido = m.USUARIO_APELLIDO AND
-                                         u.dni = m.USUARIO_DNI
              JOIN boca_data.TARJETA tarj on tarj.numero = m.MEDIO_PAGO_NRO_TARJETA AND tarj.marca = m.MARCA_TARJETA
-             JOIN boca_data.MEDIO_DE_PAGO_TIPO tipo on m.MEDIO_PAGO_TIPO = tipo.nombre
-             JOIN boca_data.MEDIO_DE_PAGO mp on mp.tarjeta_id = tarj.id and mp.tipo_id = tipo.id
+             JOIN boca_data.MEDIO_DE_PAGO mp on mp.tarjeta_id = tarj.id
              JOIN boca_data.PEDIDO_ESTADO pe on pe.nombre = m.PEDIDO_ESTADO
              JOIN boca_data.LOCAL loc on loc.nombre = m.LOCAL_NOMBRE and
-                                         loc.descripcion = m.LOCAL_DESCRIPCION and
                                          loc.direccion = m.LOCAL_DIRECCION
 
     WHERE m.PEDIDO_NRO IS NOT NULL
+
 END
 GO
 
@@ -1165,25 +1180,23 @@ BEGIN
 INSERT INTO boca_data.RECLAMO(numero_reclamo, usuario_id, pedido_id, tipo, descripcion, fecha_reclamo, operador_id, estado, solucion, calificacion, fecha_solucion)
 SELECT DISTINCT
     m.RECLAMO_NRO,
-    u.id,
+    (SELECT u.id FROM boca_data.USUARIO u WHERE u.nombre = m.USUARIO_NOMBRE AND
+                                            u.apellido = m.USUARIO_APELLIDO AND
+                                            u.dni = m.USUARIO_DNI),
     p.numero_pedido,
     t.id,
     m.RECLAMO_DESCRIPCION,
     m.RECLAMO_FECHA,
-    o.id,
+    (SELECT o.id FROM boca_data.OPERADOR o WHERE o.nombre = m.OPERADOR_RECLAMO_NOMBRE AND
+                                                o.apellido = m.OPERADOR_RECLAMO_APELLIDO AND
+                                                o.dni = m.OPERADOR_RECLAMO_DNI),
     e.id,
     m.RECLAMO_SOLUCION,
     m.RECLAMO_CALIFICACION,
     m.RECLAMO_FECHA_SOLUCION
 FROM gd_esquema.Maestra m
-         JOIN boca_data.USUARIO u on u.nombre = m.USUARIO_NOMBRE AND
-                                     u.apellido = m.USUARIO_APELLIDO AND
-                                     u.dni = m.USUARIO_DNI
          JOIN boca_data.PEDIDO p on p.numero_pedido = m.PEDIDO_NRO
          JOIN boca_data.RECLAMO_TIPO t on t.nombre = m.RECLAMO_TIPO
-         JOIN boca_data.OPERADOR o on o.nombre = m.OPERADOR_RECLAMO_NOMBRE AND
-                                      o.apellido = m.OPERADOR_RECLAMO_APELLIDO AND
-                                      o.dni = m.OPERADOR_RECLAMO_DNI
          JOIN boca_data.RECLAMO_ESTADO e on e.nombre = m.RECLAMO_ESTADO
 END
 GO
@@ -1207,7 +1220,8 @@ BEGIN
                                          u.nombre = m.USUARIO_NOMBRE
              JOIN boca_data.CUPON_TIPO t on t.nombre = m.CUPON_TIPO
     WHERE m.CUPON_NRO IS NOT NULL
-    UNION
+
+    INSERT INTO boca_data.CUPON(numero,fecha_alta,fecha_vencimiento,monto,tipo,usuario_id,es_reclamo)
     SELECT DISTINCT
         m.CUPON_RECLAMO_NRO,
         m.CUPON_RECLAMO_FECHA_ALTA,
@@ -1299,50 +1313,71 @@ GO
 
 
 
-COMMIT
-
-
-
 --------------------------------------- M I G R A C I O N ---------------------------------------
 
-BEGIN TRANSACTION
-BEGIN TRY
-    EXECUTE boca_data.migrar_local_tipo
-    EXECUTE boca_data.migrar_provincia
-    EXECUTE boca_data.migrar_dia
-    EXECUTE boca_data.migrar_tipo_movilidad
-    EXECUTE boca_data.migrar_cupon_tipo
-    EXECUTE boca_data.migrar_medio_de_pago_tipo
-    EXECUTE boca_data.migrar_pedido_estado
-    EXECUTE boca_data.migrar_reclamo_tipo
-    EXECUTE boca_data.migrar_reclamo_estado
-    EXECUTE boca_data.migrar_envio_estado
-    EXECUTE boca_data.migrar_usuario
-    EXECUTE boca_data.migrar_paquete_tipo
-    EXECUTE boca_data.migrar_operador
-    EXECUTE boca_data.migrar_localidad
-    EXECUTE boca_data.migrar_direccion_usuario
-    EXECUTE boca_data.crear_categorias_restaurante
-    EXECUTE boca_data.crear_categorias_mercado
-    EXECUTE boca_data.migrar_local
-    EXECUTE boca_data.migrar_horario
-    EXECUTE boca_data.migrar_producto
-    EXECUTE boca_data.migrar_repartidor
-    EXECUTE boca_data.migrar_tarjeta
-    EXECUTE boca_data.migrar_medio_de_pago
-    EXECUTE boca_data.migrar_envio_mensajeria
-    EXECUTE boca_data.migrar_paquete
-    EXECUTE boca_data.migrar_pedido
-    EXECUTE boca_data.migrar_envio
-    EXECUTE boca_data.migrar_reclamo
-	EXECUTE boca_data.migrar_cupon
-    EXECUTE boca_data.migrar_reclamo_cupon
-	EXECUTE boca_data.migrar_cupon_pedido
-	EXECUTE boca_data.migrar_pedido_producto
-END TRY
-BEGIN CATCH
-    ROLLBACK TRANSACTION;
-    THROW;
-END CATCH
-COMMIT
+--PRINT N'MIGRAR_LOCAL_TIPO';
+EXECUTE boca_data.migrar_local_tipo
+--PRINT N'MIGRAR_PROVINCIA';
+EXECUTE boca_data.migrar_provincia
+--PRINT N'MIGRAR_DIA';
+EXECUTE boca_data.migrar_dia
+--PRINT N'MIGRAR_TIPO_MOVILIDAD';
+EXECUTE boca_data.migrar_tipo_movilidad
+--PRINT N'MIGRAR_CUPON_TIPO';
+EXECUTE boca_data.migrar_cupon_tipo
+--PRINT N'MIGRAR_MEDIO_DE_PAGO_TIPO';
+EXECUTE boca_data.migrar_medio_de_pago_tipo
+--PRINT N'MIGRAR_PEDIDO_ESTADO';
+EXECUTE boca_data.migrar_pedido_estado
+--PRINT N'MIGRAR_RECLAMO_TIPO';
+EXECUTE boca_data.migrar_reclamo_tipo
+--PRINT N'MIGRAR_RECLAMO_ESTADO';
+EXECUTE boca_data.migrar_reclamo_estado
+--PRINT N'MIGRAR_ENVIO_ESTADO';
+EXECUTE boca_data.migrar_envio_estado
+--PRINT N'MIGRAR_USUARIO';
+EXECUTE boca_data.migrar_usuario
+--PRINT N'MIGRAR_PAQUETE_TIPO';
+EXECUTE boca_data.migrar_paquete_tipo
+--PRINT N'MIGRAR_OPERADOR';
+EXECUTE boca_data.migrar_operador
+--PRINT N'MIGRAR_LOCALIDAD';
+EXECUTE boca_data.migrar_localidad
+--PRINT N'MIGRAR_DIRECCION_USUARIO';
+EXECUTE boca_data.migrar_direccion_usuario
+--PRINT N'CREAR_CATEGORIAS_RESTAURANTE';
+EXECUTE boca_data.crear_categorias_restaurante
+--PRINT N'CREAR_CATEGORIAS_MERCADO';
+EXECUTE boca_data.crear_categorias_mercado
+--PRINT N'MIGRAR_LOCAL';
+EXECUTE boca_data.migrar_local
+--PRINT N'MIGRAR_HORARIO';
+EXECUTE boca_data.migrar_horario
+--PRINT N'MIGRAR_PRODUCTO';
+EXECUTE boca_data.migrar_producto
+--PRINT N'MIGRAR_REPARTIDOR';
+EXECUTE boca_data.migrar_repartidor
+--PRINT N'MIGRAR_TARJETA';
+EXECUTE boca_data.migrar_tarjeta
+--PRINT N'MIGRAR_MEDIO_DE_PAGO';
+EXECUTE boca_data.migrar_medio_de_pago
+--PRINT N'MIGRAR_ENVIO_MENSAJERIA';
+EXECUTE boca_data.migrar_envio_mensajeria
+--PRINT N'MIGRAR_PAQUETE';
+EXECUTE boca_data.migrar_paquete
+--PRINT N'MIGRAR_PEDIDO';
+EXECUTE boca_data.migrar_pedido
+--PRINT N'MIGRAR_ENVIO';
+EXECUTE boca_data.migrar_envio
+--PRINT N'MIGRAR_RECLAMO';
+EXECUTE boca_data.migrar_reclamo
+--PRINT N'MIGRAR_CUPON';
+EXECUTE boca_data.migrar_cupon
+--PRINT N'MIGRAR_RECLAMO_CUPON';
+EXECUTE boca_data.migrar_reclamo_cupon
+--PRINT N'MIGRAR_CUPON_PEDIDO';
+EXECUTE boca_data.migrar_cupon_pedido
+--PRINT N'MIGRAR_PEDIDO_PRODUCTO';
+EXECUTE boca_data.migrar_pedido_producto
+
 
