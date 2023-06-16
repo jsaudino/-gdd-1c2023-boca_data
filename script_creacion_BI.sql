@@ -85,37 +85,130 @@ BEGIN TRANSACTION
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_TIEMPO')
 CREATE TABLE boca_data.BI_TIEMPO (
                                      id decimal(18,0) IDENTITY PRIMARY KEY,
-                                     año tinyint,
-									 mes tinyint
+                                     año nvarchar(4),
+									 mes_nombre nvarchar(50),
+									 mes_nro tinyint
 );
 
 --Día de la Semana
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_DIA')
 CREATE TABLE boca_data.BI_DIA (
                                      id decimal(18,0) IDENTITY PRIMARY KEY,
-                                     nombre nvarchar(50)
+                                     dia_nombre nvarchar(50),
+									 dia_nro tinyint
 );
 
 --Horario
-
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_RANGO_HORARIO')
+CREATE TABLE boca_data.BI_RANGO_HORARIO(
+    id decimal(18, 0) IDENTITY PRIMARY KEY,
+    rango_horario nvarchar(50) NOT NULL
+)
 
 --Provincia/Localidad
---Provincia
-IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_PROVINCIA')
-CREATE TABLE boca_data.BI_PROVINCIA(
-                                    id decimal(18,0) IDENTITY PRIMARY KEY,
-                                    nombre nvarchar(255)
-);
+----Provincia
+--IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_PROVINCIA')
+--CREATE TABLE boca_data.BI_PROVINCIA(
+--                                    id decimal(18,0) IDENTITY PRIMARY KEY,
+--                                    nombre nvarchar(255)
+--);
 
---Localidad
-IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCALIDAD')
-CREATE TABLE boca_data.BI_LOCALIDAD(
+----Localidad
+--IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCALIDAD')
+--CREATE TABLE boca_data.BI_LOCALIDAD(
+--                                    id decimal(18,0) IDENTITY PRIMARY KEY,
+--                                    provincia_id decimal(18,0),
+--                                    nombre nvarchar(255)
+--);
+
+--Localidad_Provincia
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCALIDAD_PROVINCIA')
+CREATE TABLE boca_data.BI_LOCALIDAD_PROVINCIA(
                                     id decimal(18,0) IDENTITY PRIMARY KEY,
-                                    provincia_id decimal(18,0),
-                                    nombre nvarchar(255)
+									localidad nvarchar(255),
+                                    provincia nvarchar(255)
+                                    
 );
 
 --Rango Etario
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_EDAD')
+CREATE TABLE boca_data.BI_EDAD(
+    id decimal(18, 0) IDENTITY PRIMARY KEY,
+    rango_edad nvarchar(50) NOT NULL
+)
+
+--Tipo Medio de pago
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_MEDIO_DE_PAGO_TIPO')
+CREATE TABLE boca_data.BI_MEDIO_DE_PAGO_TIPO(
+                                             id decimal(18,0) IDENTITY PRIMARY KEY,
+                                             nombre nvarchar(50)
+);
+
+--Tipo de Local/Categoría de Local
+----Tipo de Local
+--IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCAL_TIPO')
+--CREATE TABLE boca_data.BI_LOCAL_TIPO(
+--                                     id decimal(18,0) IDENTITY PRIMARY KEY,
+--                                     nombre nvarchar(50)
+--);
+----Categoria
+--IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCAL_CATEGORIA')
+--CREATE TABLE boca_data.BI_LOCAL_CATEGORIA (
+--										id decimal(18,0) IDENTITY PRIMARY KEY,
+--										nombre nvarchar(50),
+--										tipo_id decimal(18,0)
+--);
+--Categoria_Tipo
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCAL_CATEGORIA_TIPO')
+CREATE TABLE boca_data.BI_LOCAL_CATEGORIA_TIPO (
+											id decimal(18,0) IDENTITY PRIMARY KEY,
+											categoria nvarchar(50),
+											tipo nvarchar(50)
+);
+
+--Local
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCAL')
+CREATE TABLE boca_data.BI_LOCAL(
+                                id decimal(18,0) IDENTITY PRIMARY KEY,
+                                nombre nvarchar(255),
+                                localidad_id decimal(18,0),
+                                categoria_id decimal(18,0)
+);
+
+--Tipo de Movilidad
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_MOVILIDAD_TIPO')
+CREATE TABLE boca_data.BI_MOVILIDAD_TIPO(
+										id decimal(18,0) IDENTITY PRIMARY KEY,
+										nombre nvarchar(255)
+);
+
+--Tipo de Paquete
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_PAQUETE_TIPO')
+CREATE TABLE boca_data.BI_PAQUETE_TIPO(
+										id decimal(18,0) IDENTITY PRIMARY KEY,
+										nombre nvarchar(255)
+);
+
+--Estados Pedidos
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_PEDIDO_ESTADO')
+CREATE TABLE boca_data.BI_PEDIDO_ESTADO(
+										id decimal(18,0) IDENTITY PRIMARY KEY,
+										nombre nvarchar(255)
+);
+
+--Estado Envío Mensajería
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_ENVIO_MENSAJERIA_ESTADO')
+CREATE TABLE boca_data.BI_ENVIO_MENSAJERIA_ESTADO(
+												id decimal(18,0) IDENTITY PRIMARY KEY,
+												nombre nvarchar(255)
+);
+
+--Estados Reclamos
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_RECLAMO_ESTADO')
+CREATE TABLE boca_data.BI_RECLAMO_ESTADO(
+										id decimal(18,0) IDENTITY PRIMARY KEY,
+										nombre nvarchar(255)
+);
 
 
 COMMIT TRANSACTION
@@ -125,11 +218,21 @@ COMMIT TRANSACTION
 
 BEGIN TRANSACTION
 
---Localidad -> Provincia
-ALTER TABLE boca_data.BI_LOCALIDAD
-    ADD CONSTRAINT BI_FK_LOCALIDAD_PROVINCIA
-        FOREIGN KEY(provincia_id)
-            REFERENCES boca_data.BI_PROVINCIA (id);
+----Localidad -> Provincia
+--ALTER TABLE boca_data.BI_LOCALIDAD
+--    ADD CONSTRAINT BI_FK_LOCALIDAD_PROVINCIA
+--        FOREIGN KEY(provincia_id)
+--            REFERENCES boca_data.BI_PROVINCIA (id);
+
+--Local -> Localidad
+--Local -> Categoria
+ALTER TABLE boca_data.BI_LOCAL
+	WITH CHECK ADD CONSTRAINT BI_FK_LOCAL_LOCALIDAD 
+		FOREIGN KEY(localidad_id)
+			REFERENCES boca_data.BI_LOCALIDAD_PROVINCIA (id),
+	CONSTRAINT BI_FK_LOCAL_CATEGORIA 
+		FOREIGN KEY(categoria_id)
+			REFERENCES boca_data.BI_LOCAL_CATEGORIA_TIPO (id)
 
 COMMIT TRANSACTION
 
@@ -140,9 +243,10 @@ GO
 CREATE PROCEDURE boca_data.BI_migrar_tiempo
 AS
 BEGIN
-	INSERT INTO boca_data.BI_TIEMPO (año, mes)
+	INSERT INTO boca_data.BI_TIEMPO (año, mes_nombre, mes_nro)
 	SELECT DISTINCT
 		YEAR(fecha),
+		DATENAME(MONTH,fecha),
 		MONTH(fecha)
 	FROM boca_data.PEDIDO
 END
@@ -152,43 +256,207 @@ GO
 CREATE PROCEDURE boca_data.BI_migrar_dia
 AS
 BEGIN
-	INSERT INTO boca_data.BI_DIA (nombre)
+	INSERT INTO boca_data.BI_DIA (dia_nombre, dia_nro)
 	SELECT DISTINCT
-		DATENAME(WEEKDAY,fecha)
+		DATENAME(WEEKDAY,fecha),
+		DATEPART(WEEKDAY,fecha)
 	FROM boca_data.PEDIDO
 END
 GO
 
 --Horario
-
-
---Provincia
-CREATE PROCEDURE boca_data.BI_migrar_provincia
+CREATE PROCEDURE boca_data.BI_migrar_horario
 AS
 BEGIN
-    INSERT INTO boca_data.BI_PROVINCIA (nombre)
-    SELECT
-		nombre
-	FROM boca_data.PROVINCIA
+	SET IDENTITY_INSERT boca_data.BI_Rango_Horario ON
+	INSERT INTO boca_data.BI_Rango_Horario(id, rango_horario ) 
+	VALUES	(1, '8-10'), 
+			(2, '10-12'),
+			(3, '12-14'), 
+			(4, '14-16'),
+			(5,'16-18'),
+			(6, '18-20'), 
+			(7, '20-22'), 
+			(8, '22-0')
 END
 GO
 
---Localidad
-CREATE PROCEDURE boca_data.BI_migrar_localidad
+--Localidad_Provincia
+CREATE PROCEDURE boca_data.BI_migrar_localidad_provincia
 AS
 BEGIN
-	INSERT INTO boca_data.BI_LOCALIDAD (nombre, provincia_id)
+	INSERT INTO boca_data.BI_LOCALIDAD_PROVINCIA(localidad, provincia)
 	SELECT
 		l.nombre,
-		bp.id
+		p.nombre
 	FROM boca_data.LOCALIDAD l
 	JOIN boca_data.PROVINCIA p ON p.id = l.provincia_id
-	JOIN boca_data.BI_PROVINCIA bp ON bp.nombre = p.nombre
 END
 GO
 
 --Rango Etario
-CREATE FUNCTION boca_data.bi_obtener_rango_etario (@fecha_de_nacimiento date)
+CREATE PROCEDURE boca_data.BI_migrar_rango_etario
+AS
+BEGIN
+	SET IDENTITY_INSERT boca_data.BI_EDAD ON
+	INSERT INTO boca_data.BI_EDAD (id, rango_edad) 
+	VALUES (1, '<25'),
+			(2, '25-35'), 
+			(3, '35-55'),
+			(4,'>55')
+END
+GO
+
+--Tipo Medio de pago
+CREATE PROCEDURE boca_data.BI_migrar_medio_de_pago_tipo
+AS
+BEGIN
+	INSERT INTO boca_data.BI_MEDIO_DE_PAGO_TIPO(nombre)
+	SELECT
+		nombre
+	FROM boca_data.MEDIO_DE_PAGO_TIPO
+END
+GO
+
+--Tipo de Local/Categoría de Local
+CREATE PROCEDURE boca_data.BI_migrar_categorias
+AS
+BEGIN
+	INSERT INTO boca_data.BI_LOCAL_CATEGORIA_TIPO (categoria, tipo)
+	SELECT
+		c.nombre,
+		t.nombre
+	FROM boca_data.CATEGORIA c
+	JOIN boca_data.LOCAL_TIPO t ON t.id = c.tipo_id
+END
+GO
+
+--Local
+CREATE PROCEDURE boca_data.BI_migrar_local
+AS
+BEGIN
+    INSERT INTO boca_data.BI_LOCAL (nombre, localidad_id, categoria_id)
+    SELECT
+		l.nombre,
+		bi_loc.id,
+		bi_cat.id
+	FROM boca_data.LOCAL l
+	JOIN boca_data.LOCALIDAD loc ON loc.id = l.localidad_id
+	JOIN boca_data.PROVINCIA pro ON pro.id = loc.provincia_id
+	JOIN boca_data.BI_LOCALIDAD_PROVINCIA bi_loc ON bi_loc.localidad = loc.nombre AND
+													bi_loc.provincia = pro.nombre
+	JOIN boca_data.CATEGORIA cat ON cat.id = l.categoria_id
+	JOIN boca_data.LOCAL_TIPO tip ON tip.id = cat.tipo_id
+	JOIN boca_data.BI_LOCAL_CATEGORIA_TIPO bi_cat ON bi_cat.categoria = cat.nombre AND
+														bi_cat.tipo = tip.nombre
+END
+GO
+
+--Tipo de Movilidad
+CREATE PROCEDURE boca_data.BI_migrar_tipos_movilidad
+AS
+BEGIN
+	INSERT INTO boca_data.BI_MOVILIDAD_TIPO (nombre)
+	SELECT
+		m.nombre
+	FROM boca_data.TIPO_MOVILIDAD m
+END
+GO
+
+--Tipo de Paquete
+CREATE PROCEDURE boca_data.BI_migrar_tipos_paquete
+AS
+BEGIN
+	INSERT INTO boca_data.BI_PAQUETE_TIPO (nombre)
+	SELECT
+		p.nombre
+	FROM boca_data.PAQUETE_TIPO p
+END
+GO
+
+--Estados Pedidos
+CREATE PROCEDURE boca_data.BI_migrar_estados_pedido
+AS
+BEGIN
+	INSERT INTO boca_data.BI_PEDIDO_ESTADO
+	SELECT
+		p.nombre
+	FROM boca_data.PEDIDO_ESTADO p
+END
+GO
+
+--Estado Envío Mensajería
+CREATE PROCEDURE boca_data.BI_migrar_estados_mensajeria
+AS
+BEGIN
+	INSERT INTO boca_data.BI_ENVIO_MENSAJERIA_ESTADO
+	SELECT
+		e.nombre
+	FROM boca_data.ENVIO_ESTADO e
+END
+GO
+
+--Estados Reclamos
+CREATE PROCEDURE boca_data.BI_migrar_estados_reclamo
+AS
+BEGIN
+	INSERT INTO boca_data.BI_RECLAMO_ESTADO
+	SELECT
+		r.nombre
+	FROM boca_data.RECLAMO_ESTADO r
+END
+GO
+
+
+--------------------------------------- C R E A C I O N   F U N C I O N E S ---------------------------------------
+
+--Horario
+CREATE FUNCTION boca_data.BI_obtener_rango_horario (@fecha_de_pedido date)
+    RETURNS varchar(10)
+AS
+BEGIN
+    DECLARE @returnvalue varchar(10);
+    DECLARE @horario int;
+    SELECT @horario = (CONVERT(int,DATEPART(HOUR, @fecha_de_pedido)));
+
+    IF (@horario >= 8 and @horario <10)
+        BEGIN
+            SET @returnvalue = '8-10';
+        END
+    ELSE IF (@horario >= 10 AND @horario <12)
+        BEGIN
+            SET @returnvalue = '10-12';
+        END
+    ELSE IF (@horario >= 12 AND @horario <14)
+        BEGIN
+            SET @returnvalue = '12-14';
+        END
+    ELSE IF (@horario >= 14 AND @horario <16)
+        BEGIN
+            SET @returnvalue = '14-16';
+        END
+    ELSE IF (@horario >= 16 AND @horario <18)
+        BEGIN
+            SET @returnvalue = '16-18';
+        END
+        ELSE IF (@horario >= 18 AND @horario <20)
+        BEGIN
+            SET @returnvalue = '18-20';
+        END
+    ELSE IF (@horario >= 20 AND @horario <22)
+        BEGIN
+            SET @returnvalue = '20-22';
+        END
+    ELSE IF (@horario >= 22 AND @horario <24)
+        BEGIN
+            SET @returnvalue = '22-0';
+        END
+    RETURN @returnvalue;
+END
+GO
+
+--Rango Etario
+CREATE FUNCTION boca_data.BI_obtener_rango_etario (@fecha_de_nacimiento date)
     RETURNS varchar(10)
 AS
 BEGIN
@@ -218,10 +486,130 @@ END
 GO
 
 
+--------------------------------------- M I G R A C I O N   B I ---------------------------------------
 
+EXECUTE boca_data.BI_migrar_tiempo
+EXECUTE boca_data.BI_migrar_dia
+EXECUTE boca_data.BI_migrar_horario
+EXECUTE boca_data.BI_migrar_localidad_provincia
+EXECUTE boca_data.BI_migrar_rango_etario
+EXECUTE boca_data.BI_migrar_medio_de_pago_tipo
+EXECUTE boca_data.BI_migrar_categorias
+EXECUTE boca_data.BI_migrar_local
+EXECUTE boca_data.BI_migrar_tipos_movilidad
+EXECUTE boca_data.BI_migrar_tipos_paquete
+EXECUTE boca_data.BI_migrar_estados_pedido
+EXECUTE boca_data.BI_migrar_estados_mensajeria
+EXECUTE boca_data.BI_migrar_estados_reclamo
 
 
 
 --------------------------------------- C R E A C I O N   V I S T A S ---------------------------------------
+GO
 
---Día de la semana y franja horaria con mayor cantidad de pedidos según la localidad y categoría del local, para cada mes de cada año.CREATE VIEW boca_data.BI_VW_MAYOR_CANT_PEDIDOS (año, mes, provincia, localidad, categoria, dia, horario)ASSELECT	1 as año,	1 as mes,	1 as provincia,	1 as localidad,	1 as categoria,	1 as dia,	1 as horario
+--VISTA 1
+--Día de la semana y franja horaria con mayor cantidad de pedidos según la localidad y categoría del local, para cada mes de cada año.
+
+--Toda la info del pedido para un mismo año, mes, localidad y categoria:
+SELECT
+	b_t.año as año,
+	b_t.mes_nombre as mes,
+	b_loc.provincia as provincia,
+	b_loc.localidad as localidad,
+	b_cat.tipo as tipo_local,
+	b_cat.categoria as categoria_local,
+	p.*
+FROM boca_data.PEDIDO p
+JOIN boca_data.BI_TIEMPO b_t ON b_t.año = YEAR(p.fecha) AND
+								b_t.mes_nro = MONTH(p.fecha)
+JOIN boca_data.LOCAL l ON l.id = p.local_id
+JOIN boca_data.LOCALIDAD loc ON loc.id = l.localidad_id
+JOIN boca_data.PROVINCIA prov ON prov.id = loc.provincia_id
+JOIN boca_data.BI_LOCALIDAD_PROVINCIA b_loc ON b_loc.localidad = loc.nombre AND
+												b_loc.provincia = prov.nombre
+JOIN boca_data.CATEGORIA c ON c.id = l.categoria_id
+JOIN boca_data.LOCAL_TIPO lt ON lt.id = c.tipo_id
+JOIN boca_data.BI_LOCAL_CATEGORIA_TIPO b_cat ON b_cat.categoria = c.nombre AND
+												b_cat.tipo = lt.nombre
+ORDER BY b_t.año, b_t.mes_nro, b_loc.provincia, b_loc.localidad, b_cat.tipo, b_cat.categoria
+
+GO
+CREATE VIEW boca_data.BI_VW_PEDIDOS_MAYOR_CANT
+AS
+SELECT
+	t.año as año,
+	t.mes_nombre as mes,
+	lp.provincia as provincia,
+	lp.localidad as localidad,
+	ct.tipo as tipo_local,
+	ct.categoria as categoria_local,
+	(
+		SELECT TOP 1
+			DATENAME(WEEKDAY, p.fecha)
+		FROM boca_data.PEDIDO p
+		JOIN boca_data.LOCAL l ON l.id = p.local_id
+		JOIN boca_data.LOCALIDAD loc ON loc.id = l.localidad_id
+		JOIN boca_data.PROVINCIA prov ON prov.id = loc.provincia_id
+		JOIN boca_data.CATEGORIA c ON c.id = l.categoria_id
+		JOIN boca_data.LOCAL_TIPO tipo ON tipo.id = c.tipo_id
+		WHERE YEAR(p.fecha) = t.año AND
+				MONTH(p.fecha) = t.mes_nro AND
+				loc.nombre = lp.localidad AND
+				prov.nombre = lp.provincia AND
+				c.nombre = ct.categoria AND
+				tipo.nombre = ct.tipo
+		GROUP BY DATENAME(WEEKDAY, p.fecha), FORMAT(p.fecha,'HH')
+		ORDER BY COUNT(p.numero_pedido) DESC
+	) as diaMayorCantPedidos,
+	(
+		SELECT TOP 1
+			FORMAT(p.fecha,'HH')
+		FROM boca_data.PEDIDO p
+		JOIN boca_data.LOCAL l ON l.id = p.local_id
+		JOIN boca_data.LOCALIDAD loc ON loc.id = l.localidad_id
+		JOIN boca_data.PROVINCIA prov ON prov.id = loc.provincia_id
+		JOIN boca_data.CATEGORIA c ON c.id = l.categoria_id
+		JOIN boca_data.LOCAL_TIPO tipo ON tipo.id = c.tipo_id
+		WHERE YEAR(p.fecha) = t.año AND
+				MONTH(p.fecha) = t.mes_nro AND
+				loc.nombre = lp.localidad AND
+				prov.nombre = lp.provincia AND
+				c.nombre = ct.categoria AND
+				tipo.nombre = ct.tipo
+		GROUP BY DATENAME(WEEKDAY, p.fecha), FORMAT(p.fecha,'HH')
+		ORDER BY COUNT(p.numero_pedido) DESC
+	) as horarioMayorCantPedidos
+FROM boca_data.BI_TIEMPO t
+JOIN boca_data.BI_LOCALIDAD_PROVINCIA lp ON lp.id IS NOT NULL
+JOIN boca_data.BI_LOCAL_CATEGORIA_TIPO ct ON ct.id IS NOT NULL
+WHERE t.año = '2023' AND
+		t.mes_nro = 2 AND
+		lp.localidad = 'Ines Indart' AND
+		lp.provincia = 'Buenos Aires' AND
+		ct.categoria = 'Kiosco' AND
+		ct.tipo = 'Tipo Local Mercado'
+--ORDER BY 1,2,3,4,5,6
+GO
+
+--Ejemplo para Febrero de 2023 en Agustin Ferrari (BsAs) para los Mercados que son Kioscos:
+SELECT
+	DATENAME(WEEKDAY, p.fecha) dia_semana,
+	FORMAT(p.fecha,'HH') franja_horaria,
+	*
+FROM boca_data.PEDIDO p
+JOIN boca_data.LOCAL l ON l.id = p.local_id
+JOIN boca_data.LOCALIDAD loc ON loc.id = l.localidad_id
+JOIN boca_data.PROVINCIA prov ON prov.id = loc.provincia_id
+JOIN boca_data.CATEGORIA c ON c.id = l.categoria_id
+JOIN boca_data.LOCAL_TIPO tipo ON tipo.id = c.tipo_id
+WHERE YEAR(p.fecha) = '2023' AND
+		MONTH(p.fecha) = 2 AND
+		loc.nombre = 'Ines Indart' AND
+		prov.nombre = 'Buenos Aires' AND
+		c.nombre = 'Kiosco' AND
+		tipo.nombre = 'Tipo Local Mercado'
+ORDER BY DATEPART(WEEKDAY, p.fecha), FORMAT(p.fecha,'HH')
+
+
+--VISTA 2
+--Monto total no cobrado por cada local en función de los pedidos cancelados según el día de la semana y --la franja horaria (cuentan como pedidos cancelados tanto los que cancela el usuario como el local).
