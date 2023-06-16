@@ -106,22 +106,6 @@ CREATE TABLE boca_data.BI_RANGO_HORARIO(
 )
 
 --Provincia/Localidad
-----Provincia
---IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_PROVINCIA')
---CREATE TABLE boca_data.BI_PROVINCIA(
---                                    id decimal(18,0) IDENTITY PRIMARY KEY,
---                                    nombre nvarchar(255)
---);
-
-----Localidad
---IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCALIDAD')
---CREATE TABLE boca_data.BI_LOCALIDAD(
---                                    id decimal(18,0) IDENTITY PRIMARY KEY,
---                                    provincia_id decimal(18,0),
---                                    nombre nvarchar(255)
---);
-
---Localidad_Provincia
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCALIDAD_PROVINCIA')
 CREATE TABLE boca_data.BI_LOCALIDAD_PROVINCIA(
                                     id decimal(18,0) IDENTITY PRIMARY KEY,
@@ -144,20 +128,6 @@ CREATE TABLE boca_data.BI_MEDIO_DE_PAGO_TIPO(
                                              nombre nvarchar(50)
 );
 
---Tipo de Local/Categoría de Local
-----Tipo de Local
---IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCAL_TIPO')
---CREATE TABLE boca_data.BI_LOCAL_TIPO(
---                                     id decimal(18,0) IDENTITY PRIMARY KEY,
---                                     nombre nvarchar(50)
---);
-----Categoria
---IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCAL_CATEGORIA')
---CREATE TABLE boca_data.BI_LOCAL_CATEGORIA (
---										id decimal(18,0) IDENTITY PRIMARY KEY,
---										nombre nvarchar(50),
---										tipo_id decimal(18,0)
---);
 --Categoria_Tipo
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_LOCAL_CATEGORIA_TIPO')
 CREATE TABLE boca_data.BI_LOCAL_CATEGORIA_TIPO (
@@ -240,6 +210,7 @@ COMMIT TRANSACTION
 --------------------------------------- C R E A C I O N   S P ---------------------------------------
 GO
 --Tiempo (VER SI NUMERO O NOMBRE)
+--ESTRATEGIA: no ponemos fechas de reclamo porque son las mismas de los pedidos
 CREATE PROCEDURE boca_data.BI_migrar_tiempo
 AS
 BEGIN
@@ -268,16 +239,16 @@ GO
 CREATE PROCEDURE boca_data.BI_migrar_horario
 AS
 BEGIN
-	SET IDENTITY_INSERT boca_data.BI_Rango_Horario ON
-	INSERT INTO boca_data.BI_Rango_Horario(id, rango_horario ) 
-	VALUES	(1, '8-10'), 
-			(2, '10-12'),
-			(3, '12-14'), 
-			(4, '14-16'),
-			(5,'16-18'),
-			(6, '18-20'), 
-			(7, '20-22'), 
-			(8, '22-0')
+	--SET IDENTITY_INSERT boca_data.BI_Rango_Horario ON
+	INSERT INTO boca_data.BI_Rango_Horario(rango_horario ) 
+	VALUES	('8-10'), 
+			('10-12'),
+			('12-14'), 
+			('14-16'),
+			('16-18'),
+			('18-20'), 
+			('20-22'), 
+			('22-0')	
 END
 GO
 
@@ -335,20 +306,28 @@ GO
 CREATE PROCEDURE boca_data.BI_migrar_local
 AS
 BEGIN
-    INSERT INTO boca_data.BI_LOCAL (nombre, localidad_id, categoria_id)
+	INSERT INTO boca_data.BI_LOCAL (nombre, localidad_id, categoria_id)
     SELECT
 		l.nombre,
-		bi_loc.id,
-		bi_cat.id
+		(
+			SELECT
+				bi_loc.id
+			FROM boca_data.BI_LOCALIDAD_PROVINCIA bi_loc
+			WHERE bi_loc.localidad = loc.nombre AND
+					bi_loc.provincia = pro.nombre
+		),
+		(
+			SELECT
+				bi_cat.id
+			FROM boca_data.BI_LOCAL_CATEGORIA_TIPO bi_cat
+			WHERE bi_cat.categoria = cat.nombre AND
+					bi_cat.tipo = tip.nombre
+		)
 	FROM boca_data.LOCAL l
 	JOIN boca_data.LOCALIDAD loc ON loc.id = l.localidad_id
 	JOIN boca_data.PROVINCIA pro ON pro.id = loc.provincia_id
-	JOIN boca_data.BI_LOCALIDAD_PROVINCIA bi_loc ON bi_loc.localidad = loc.nombre AND
-													bi_loc.provincia = pro.nombre
 	JOIN boca_data.CATEGORIA cat ON cat.id = l.categoria_id
 	JOIN boca_data.LOCAL_TIPO tip ON tip.id = cat.tipo_id
-	JOIN boca_data.BI_LOCAL_CATEGORIA_TIPO bi_cat ON bi_cat.categoria = cat.nombre AND
-														bi_cat.tipo = tip.nombre
 END
 GO
 
