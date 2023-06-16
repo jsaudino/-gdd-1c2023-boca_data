@@ -55,6 +55,22 @@ IF EXISTS (SELECT 1 FROM SYS.OBJECTS WHERE schema_id = SCHEMA_ID('boca_data'))
 
         EXECUTE(@SQL2)
 
+---------------------------------------- D R O P   V I E W S  -------------------------------------
+        DECLARE @SQL_VIEW NVARCHAR(MAX) = N'';
+
+        SELECT @SQL_VIEW += N'
+	DROP VIEW boca_data.' + TABLE_NAME + ';'
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = 'boca_data'
+          AND TABLE_TYPE = 'VIEW'
+          AND TABLE_NAME LIKE 'BI[_]%'
+
+        --PRINT @SQL_VIEW
+        EXECUTE(@SQL_VIEW)
+
+    
+
+
 ----------------------------------------- D R O P   S C H E M A -------------------------------------
         DROP SCHEMA boca_data
     END
