@@ -178,6 +178,13 @@ CREATE TABLE boca_data.BI_RECLAMO_ESTADO(
 										nombre nvarchar(255)
 );
 
+--Tipos Reclamo
+IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_RECLAMO_TIPO')
+CREATE TABLE boca_data.BI_RECLAMO_TIPO(
+                                            id decimal(18,0) IDENTITY PRIMARY KEY,
+                                            nombre nvarchar(255)
+);
+
 
 COMMIT TRANSACTION
 
@@ -348,6 +355,16 @@ BEGIN
 END
 GO
 
+--Tipos Reclamos
+CREATE PROCEDURE boca_data.BI_migrar_reclamo_tipo
+AS
+BEGIN
+    INSERT INTO boca_data.BI_RECLAMO_TIPO
+    SELECT
+        r.nombre
+    FROM boca_data.RECLAMO_TIPO r
+END
+GO
 
 --------------------------------------- C R E A C I O N   F U N C I O N E S ---------------------------------------
 
