@@ -186,12 +186,27 @@ CREATE TABLE boca_data.BI_RECLAMO_TIPO(
 );
 
 
+CREATE TABLE boca_data.BI_HECHOS_ENVIO_MENSAJERIA (
+                                  id_tiempo decimal(18,0),
+                                  id_envio_mensajeria_estado decimal(18,0),
+                                  id_paquete_tipo decimal(18,0),
+                                  valor_asegurado decimal(18,2),
+                                  PRIMARY KEY(id_tiempo,id_envio_mensajeria_estado,id_paquete_tipo)
+);
+
 COMMIT TRANSACTION
 
 
 --------------------------------------- C R E A C I O N   F K ---------------------------------------
 
-
+ALTER TABLE boca_data.BI_HECHOS_ENVIO_MENSAJERIA
+    WITH CHECK
+        ADD CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_TIEMPO FOREIGN KEY(id_tiempo)
+        REFERENCES boca_data.BI_TIEMPO (id),
+        CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_ESTADO FOREIGN KEY (id_envio_mensajeria_estado)
+            REFERENCES boca_data.BI_ENVIO_MENSAJERIA_ESTADO (id),
+        CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_PAQUETE_TIPO FOREIGN KEY (id_paquete_tipo)
+            REFERENCES boca_data.BI_PAQUETE_TIPO (id);
 
 
 --------------------------------------- C R E A C I O N   S P ---------------------------------------
@@ -366,6 +381,32 @@ BEGIN
 END
 GO
 
+--------------------------------------- MIGRAR HECHOS ---------------------------------------
+
+--Tipos Reclamos
+CREATE PROCEDURE boca_data.BI_migrar_hechos_envio_mensajeria
+AS
+BEGIN
+    INSERT INTO boca_data.BI_HECHOS_ENVIO_MENSAJERIA(id_tiempo,
+                                                     id_envio_mensajeria_estado,
+                                                    id_paquete_tipo,
+                                                    valor_asegurado)
+    SELECT
+        bi_t.id,
+        bi_eme.id,
+        bi_pt.id,
+        SUM(em.valor_asegurado)
+    FROM boca_data.ENVIO_MENSAJERIA em
+             JOIN boca_data.BI_TIEMPO bi_t on  bi_t.mes_nro = MONTH(em.fecha_entrega) AND bi_t.anio = YEAR(em.fecha_entrega)
+             JOIN boca_data.ENVIO_ESTADO ee on ee.id = em.envio_estado_id
+             JOIN boca_data.BI_ENVIO_MENSAJERIA_ESTADO bi_eme ON bi_eme.nombre = ee.nombre
+             JOIN boca_data.PAQUETE p ON p.nro_envio = em.nro_envio
+             JOIN boca_data.PAQUETE_TIPO pt ON pt.id = p.paquete_tipo_id
+             JOIN boca_data.BI_PAQUETE_TIPO bi_pt ON bi_pt.nombre = pt.nombre
+    GROUP BY bi_t.id, bi_eme.id, bi_pt.id
+END
+GO
+
 --------------------------------------- C R E A C I O N   F U N C I O N E S ---------------------------------------
 
 --Horario
@@ -459,6 +500,7 @@ EXECUTE boca_data.BI_migrar_tipos_paquete
 EXECUTE boca_data.BI_migrar_estados_pedido
 EXECUTE boca_data.BI_migrar_estados_mensajeria
 EXECUTE boca_data.BI_migrar_estados_reclamo
+
 
 
 
