@@ -608,6 +608,23 @@ EXECUTE boca_data.BI_migrar_hechos_reclamo
 --------------------------------------- C R E A C I O N   V I S T A S ---------------------------------------
 GO
 
+--VISTA 5
+--Monto total de los cupones utilizados por mes en función del rango etario de los usuarios.
+CREATE VIEW boca_data.BI_VW_MONTO_MENSUAL_X_CUPONES_X_RANGO_ETARIO
+AS
+     SELECT
+        t.anio Anio,
+		t.mes_nro Mes_Nro,
+        t.mes_nombre Mes_Nombre,
+		re.rango_etario,
+        SUM(hr.monto_cupones) Monto_Cupones
+    FROM boca_data.BI_HECHOS_RECLAMO hr
+    JOIN boca_data.BI_TIEMPO t ON t.id = hr.id_tiempo
+	JOIN boca_data.BI_RANGO_ETARIO re ON re.id=hr.id_rango_etario
+	GROUP BY t.anio, t.mes_nro, t.mes_nombre, re.rango_etario
+GO
+
+		
 --VISTA 8
 --Promedio mensual del valor asegurado (valor declarado por el usuario) de los paquetes enviados
 --a través del servicio de mensajería en función del tipo de paquete.
