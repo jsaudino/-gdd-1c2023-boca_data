@@ -81,6 +81,7 @@ GO
 ----------------------------------------- C R E A C I O N  T A B L A S -------------------------------------
 BEGIN TRANSACTION
 
+--------------------------------------------- D I M E N S I O N E S ----------------------------------------
 --Tiempo
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_TIEMPO')
 CREATE TABLE boca_data.BI_TIEMPO (
@@ -90,7 +91,7 @@ CREATE TABLE boca_data.BI_TIEMPO (
 									 mes_nro tinyint
 );
 
---D�a de la Semana
+--Dia de la Semana
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_DIA')
 CREATE TABLE boca_data.BI_DIA (
                                      id decimal(18,0) IDENTITY PRIMARY KEY,
@@ -118,7 +119,7 @@ CREATE TABLE boca_data.BI_LOCALIDAD_PROVINCIA(
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_RANGO_ETARIO')
 CREATE TABLE boca_data.BI_RANGO_ETARIO(
     id decimal(18, 0) IDENTITY PRIMARY KEY,
-    rango_edad nvarchar(50) NOT NULL
+    rango_etario nvarchar(50) NOT NULL
 )
 
 --Tipo Medio de pago
@@ -164,7 +165,7 @@ CREATE TABLE boca_data.BI_PEDIDO_ESTADO(
 										nombre nvarchar(255)
 );
 
---Estado Env�o Mensajer�a
+--Estado Envio Mensajeria
 IF NOT EXISTS(SELECT [name] FROM sys.tables WHERE [name] = 'BI_ENVIO_MENSAJERIA_ESTADO')
 CREATE TABLE boca_data.BI_ENVIO_MENSAJERIA_ESTADO(
 												id decimal(18,0) IDENTITY PRIMARY KEY,
@@ -186,12 +187,29 @@ CREATE TABLE boca_data.BI_RECLAMO_TIPO(
 );
 
 
+--------------------------------------------- H E C H O S ----------------------------------------
+
+--Envios Mensajeria segun tiempo, estado y tipo de paquete
 CREATE TABLE boca_data.BI_HECHOS_ENVIO_MENSAJERIA (
+								  id decimal(18,0) IDENTITY PRIMARY KEY,
                                   id_tiempo decimal(18,0),
                                   id_envio_mensajeria_estado decimal(18,0),
                                   id_paquete_tipo decimal(18,0),
-                                  valor_asegurado decimal(18,2),
-                                  PRIMARY KEY(id_tiempo,id_envio_mensajeria_estado,id_paquete_tipo)
+                                  valor_asegurado decimal(18,2)
+);
+
+
+--Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo
+CREATE TABLE boca_data.BI_HECHOS_RECLAMO (
+                                                      id decimal(18,0) IDENTITY PRIMARY KEY,
+                                                      id_tiempo decimal(18,0),
+                                                      id_dia decimal(18,0),
+                                                      id_rango_etario decimal(18,0),
+                                                      id_rango_horario decimal(18,0),
+                                                      id_local decimal(18,0),
+                                                      id_reclamo_tipo decimal(18,0),
+                                                      tiempo_resolucion decimal(18,0),
+                                                      monto_cupones decimal(18,0)
 );
 
 COMMIT TRANSACTION
@@ -199,6 +217,9 @@ COMMIT TRANSACTION
 
 --------------------------------------- C R E A C I O N   F K ---------------------------------------
 
+--Envios Mensajeria segun tiempo, estado y tipo de paquete -> Tiempo
+--Envios Mensajeria segun tiempo, estado y tipo de paquete -> Estado
+--Envios Mensajeria segun tiempo, estado y tipo de paquete -> Tipo Paquete
 ALTER TABLE boca_data.BI_HECHOS_ENVIO_MENSAJERIA
     WITH CHECK
         ADD CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_TIEMPO FOREIGN KEY(id_tiempo)
@@ -208,9 +229,34 @@ ALTER TABLE boca_data.BI_HECHOS_ENVIO_MENSAJERIA
         CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_PAQUETE_TIPO FOREIGN KEY (id_paquete_tipo)
             REFERENCES boca_data.BI_PAQUETE_TIPO (id);
 
+--Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo -> Tiempo
+--Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo -> Dia
+--Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo -> Rango Etario
+--Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo -> Rango Horario
+--Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo -> Local
+--Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo -> Tipo Reclamo
+ALTER TABLE boca_data.BI_HECHOS_RECLAMO
+    WITH CHECK
+    ADD CONSTRAINT FK_HECHOS_RECLAMO_TIEMPO FOREIGN KEY(id_tiempo)
+    REFERENCES boca_data.BI_TIEMPO (id),
+    CONSTRAINT FK_HECHOS_RECLAMO_DIA FOREIGN KEY (id_dia)
+    REFERENCES boca_data.BI_DIA (id),
+    CONSTRAINT FK_HECHOS_RECLAMO_RANGO_ETARIO FOREIGN KEY (id_rango_etario)
+    REFERENCES boca_data.BI_RANGO_ETARIO (id),
+    CONSTRAINT FK_HECHOS_RANGO_HORARIO FOREIGN KEY (id_rango_horario)
+    REFERENCES boca_data.BI_RANGO_HORARIO (id),
+    CONSTRAINT FK_HECHOS_RECLAMO_LOCAL FOREIGN KEY (id_local)
+    REFERENCES boca_data.BI_LOCAL (id),
+    CONSTRAINT FK_HECHOS_RECLAMO_TIPO FOREIGN KEY (id_reclamo_tipo)
+    REFERENCES boca_data.BI_RECLAMO_TIPO (id);
+
+
+
 
 --------------------------------------- C R E A C I O N   S P ---------------------------------------
 GO
+--------------------------------------------- D I M E N S I O N E S ----------------------------------------
+
 --Tiempo (VER SI NUMERO O NOMBRE)
 --ESTRATEGIA: no ponemos fechas de reclamo porque son las mismas de los pedidos
 CREATE PROCEDURE boca_data.BI_migrar_tiempo
@@ -272,11 +318,11 @@ CREATE PROCEDURE boca_data.BI_migrar_rango_etario
 AS
 BEGIN
 	SET IDENTITY_INSERT boca_data.BI_RANGO_ETARIO ON
-	INSERT INTO boca_data.BI_RANGO_ETARIO (id, rango_edad)
-	VALUES (1, '<25'),
-			(2, '25-35'), 
-			(3, '35-55'),
-			(4,'>55')
+	INSERT INTO boca_data.BI_RANGO_ETARIO (id, rango_etario)
+	VALUES (1, '< 25'),
+			(2, '25 - 35'),
+			(3, '35 - 55'),
+			(4,'> 55')
 END
 GO
 
@@ -291,7 +337,7 @@ BEGIN
 END
 GO
 
---Tipo de Local/Categor�a de Local
+--Tipo de Local/Categoria de Local
 CREATE PROCEDURE boca_data.BI_migrar_categorias
 AS
 BEGIN
@@ -348,7 +394,7 @@ BEGIN
 END
 GO
 
---Estado Env�o Mensajer�a
+--Estado Envio Mensajeria
 CREATE PROCEDURE boca_data.BI_migrar_estados_mensajeria
 AS
 BEGIN
@@ -381,9 +427,9 @@ BEGIN
 END
 GO
 
---------------------------------------- MIGRAR HECHOS ---------------------------------------
+--------------------------------------------- H E C H O S ----------------------------------------
 
---Tipos Reclamos
+--Envios Mensajeria segun tiempo, estado y tipo de paquete
 CREATE PROCEDURE boca_data.BI_migrar_hechos_envio_mensajeria
 AS
 BEGIN
@@ -395,7 +441,7 @@ BEGIN
         bi_t.id,
         bi_eme.id,
         bi_pt.id,
-        SUM(em.valor_asegurado)
+        em.valor_asegurado
     FROM boca_data.ENVIO_MENSAJERIA em
              JOIN boca_data.BI_TIEMPO bi_t on  bi_t.mes_nro = MONTH(em.fecha_entrega) AND bi_t.anio = YEAR(em.fecha_entrega)
              JOIN boca_data.ENVIO_ESTADO ee on ee.id = em.envio_estado_id
@@ -403,22 +449,57 @@ BEGIN
              JOIN boca_data.PAQUETE p ON p.nro_envio = em.nro_envio
              JOIN boca_data.PAQUETE_TIPO pt ON pt.id = p.paquete_tipo_id
              JOIN boca_data.BI_PAQUETE_TIPO bi_pt ON bi_pt.nombre = pt.nombre
-    GROUP BY bi_t.id, bi_eme.id, bi_pt.id
 END
+GO
+
+--Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo
+CREATE PROCEDURE boca_data.BI_migrar_hechos_reclamo
+    AS
+    BEGIN
+        INSERT INTO boca_data.BI_HECHOS_RECLAMO(id_tiempo,
+                                                id_dia,
+                                                id_rango_etario,
+                                                id_rango_horario,
+                                                id_local,
+                                                id_reclamo_tipo,
+                                                tiempo_resolucion,
+                                                monto_cupones)
+        SELECT
+            bi_t.id,
+            bi_d.id,
+            bi_re.id,
+            bi_rh.id,
+            bi_l.id,
+            bi_rt.id,
+            DATEDIFF(MINUTE, r.fecha_reclamo, r.fecha_solucion),
+            cu.monto
+        FROM boca_data.RECLAMO r
+            JOIN boca_data.BI_TIEMPO bi_t ON bi_t.mes_nro = MONTH(r.fecha_reclamo) AND bi_t.anio = YEAR(r.fecha_reclamo)
+            JOIN boca_data.BI_DIA bi_d ON bi_d.dia_nro = datepart(WEEKDAY,r.fecha_reclamo)
+            JOIN boca_data.OPERADOR o ON o.id = r.operador_id
+            JOIN boca_data.BI_RANGO_ETARIO bi_re ON bi_re.rango_etario = boca_data.BI_obtener_rango_etario(o.fecha_nacimiento)
+            JOIN boca_data.BI_RANGO_HORARIO bi_rh ON bi_rh.rango_horario= boca_data.BI_obtener_rango_horario (r.fecha_reclamo)
+            JOIN boca_data.PEDIDO p ON p.numero_pedido=r.pedido_id
+            JOIN boca_data.BI_LOCAL bi_l ON bi_l.id= p.local_id
+            JOIN boca_data.RECLAMO_TIPO rt ON rt.id=r.tipo
+            JOIN boca_data.BI_RECLAMO_TIPO bi_rt ON bi_rt.id=rt.id
+            JOIN boca_data.RECLAMO_CUPON rc ON rc.reclamo_id=r.numero_reclamo
+            JOIN boca_data.CUPON cu ON cu.id=rc.cupon_id
+        END
 GO
 
 --------------------------------------- C R E A C I O N   F U N C I O N E S ---------------------------------------
 
 --Horario
-CREATE FUNCTION boca_data.BI_obtener_rango_horario (@fecha_de_pedido date)
+CREATE FUNCTION boca_data.BI_obtener_rango_horario (@fecha datetime2)
     RETURNS varchar(10)
 AS
 BEGIN
     DECLARE @returnvalue varchar(10);
     DECLARE @horario int;
-    SELECT @horario = (CONVERT(int,DATEPART(HOUR, @fecha_de_pedido)));
+    SELECT @horario = (CONVERT(int,DATEPART(HOUR, @fecha)));
 
-    IF (@horario >= 8 and @horario <10)
+    IF (@horario >= 8 AND @horario <10)
         BEGIN
             SET @returnvalue = '8-10';
         END
@@ -461,7 +542,7 @@ AS
 BEGIN
     DECLARE @returnvalue varchar(10);
     DECLARE @edad int;
-    SELECT @edad = (CONVERT(int,CONVERT(char(8),GetDate(),112))-CONVERT(char(8),@fecha_de_nacimiento,112))/10000;
+    SELECT @edad = (DATEDIFF (DAYOFYEAR, @fecha_de_nacimiento,GETDATE())) / 365; --No consideramos los bisiestos
 
     IF (@edad < 25)
         BEGIN
@@ -500,12 +581,72 @@ EXECUTE boca_data.BI_migrar_tipos_paquete
 EXECUTE boca_data.BI_migrar_estados_pedido
 EXECUTE boca_data.BI_migrar_estados_mensajeria
 EXECUTE boca_data.BI_migrar_estados_reclamo
+EXECUTE boca_data.BI_migrar_reclamo_tipo
 
-
+EXECUTE boca_data.BI_migrar_hechos_envio_mensajeria
+EXECUTE boca_data.BI_migrar_hechos_reclamo
 
 
 --------------------------------------- C R E A C I O N   V I S T A S ---------------------------------------
 GO
+
+--VISTA 8
+--Promedio mensual del valor asegurado (valor declarado por el usuario) de los paquetes enviados
+--a través del servicio de mensajería en función del tipo de paquete.
+CREATE VIEW boca_data.BI_VW_PROMEDIO_VALOR_ASEGURADO
+AS
+    SELECT
+        t.anio Anio,
+		t.mes_nro Mes_Nro,
+        t.mes_nombre Mes_Nombre,
+        (SELECT ti.nombre FROM boca_data.BI_PAQUETE_TIPO ti WHERE ti.id = h.id_paquete_tipo) Tipo_Paquete,
+        AVG(h.valor_asegurado) Promedio_Valor_Asegurado
+    FROM boca_data.BI_HECHOS_ENVIO_MENSAJERIA h
+    JOIN boca_data.BI_ENVIO_MENSAJERIA_ESTADO eme ON eme.id = h.id_envio_mensajeria_estado
+    JOIN boca_data.BI_TIEMPO t ON t.id = h.id_tiempo
+    WHERE eme.nombre = 'Estado Mensajeria Entregado'
+    GROUP BY t.anio, t.mes_nro, t.mes_nombre, id_paquete_tipo
+GO
+
+
+--VISTA 9
+--Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario.
+CREATE VIEW boca_data.BI_VW_CANT_RECLAMOS_MENSUALES_X_LOCAL_X_RANGO_HORARIO_X_DIA
+AS
+    SELECT
+        t.anio Anio,
+		t.mes_nro Mes_Nro,
+        t.mes_nombre Mes_Nombre,
+        d.dia_nombre Dia,
+        l.nombre Local,
+        rh.rango_horario Rango_Horario,
+        count(*) Cantidad_Reclamos
+    FROM boca_data.BI_HECHOS_RECLAMO hr
+    JOIN boca_data.BI_TIEMPO t ON t.id = hr.id_tiempo
+    JOIN boca_data.BI_LOCAL l ON l.id = hr.id_local
+    JOIN boca_data.BI_DIA d ON d.id = hr.id_dia
+    JOIN boca_data.BI_RANGO_HORARIO rh ON rh.id = hr.id_rango_horario
+    GROUP BY t.anio, t.mes_nro, t.mes_nombre, d.dia_nombre, l.nombre, rh.rango_horario
+GO
+
+--VISTA 10
+--Tiempo promedio de resolución de reclamos mensual según cada tipo de reclamo y rango etario de los operadores.
+--El tiempo de resolución debe calcularse en minutos y representa la diferencia entre la fecha/hora
+--en que se realizó el reclamo y la fecha/hora que se resolvió.
+CREATE VIEW boca_data.BI_VW_TIEMPO_PROM_RESOLUCION_RECLAMOS_X_MES_X_TIPO_X_RANGO_ETARIO
+AS
+    SELECT
+        t.anio Anio,
+		t.mes_nro Mes_Nro,
+        t.mes_nombre Mes_Nombre,
+        re.rango_etario Rango_Etario,
+        rt.nombre Tipo_Reclamo,
+        AVG(hr.tiempo_resolucion) * 525600 Promedio_Tiempo_Resolucion
+    FROM boca_data.BI_HECHOS_RECLAMO hr
+    JOIN boca_data.BI_TIEMPO t ON t.id = hr.id_tiempo
+    JOIN boca_data.BI_RANGO_ETARIO re ON re.id = hr.id_rango_etario
+    JOIN boca_data.BI_RECLAMO_TIPO rt ON rt.id = hr.id_reclamo_tipo
+    GROUP BY t.anio, t.mes_nro, t.mes_nombre, re.rango_etario, rt.nombre
 
 --VISTA 1
 --D�a de la semana y franja horaria con mayor cantidad de pedidos seg�n la localidad y categor�a del local, para cada mes de cada a�o.
