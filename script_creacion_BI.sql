@@ -205,7 +205,8 @@ CREATE TABLE boca_data.BI_HECHOS_ENVIO_MENSAJERIA (
 	id_dia decimal(18,0),
 	id_medio_pago_tipo decimal(18,0),
 	valor_asegurado decimal(18,2),
-    tiempo_desvio decimal(18,2)
+    tiempo_desvio decimal(18,2),
+    cantidad_envios decimal(18,0)
 );
 
 
@@ -220,7 +221,8 @@ CREATE TABLE boca_data.BI_HECHOS_RECLAMO (
 	id_reclamo_tipo decimal(18,0),
 	id_reclamo_estado decimal(18,0),
 	tiempo_resolucion decimal(18,2),
-	monto_cupones decimal(18,2)
+	monto_cupones decimal(18,2),
+	cantidad_reclamos decimal(18,0)
 );
 
 --Pedidos segun tiempo, dia, rango etario del usuario y del repartidor, rango horario, local y su categoria, pedido estado y movilidad
@@ -240,7 +242,8 @@ CREATE TABLE boca_data.BI_HECHOS_PEDIDO (
     monto_envio decimal(18,2),
     monto_cupon decimal(18,2),
     calificacion decimal(18,2),
-    tiempo_desvio decimal(18,2)
+    tiempo_desvio decimal(18,2),
+	cantidad_pedidos decimal(18,0)
 );
 
 COMMIT TRANSACTION
@@ -267,18 +270,18 @@ ALTER TABLE boca_data.BI_HECHOS_ENVIO_MENSAJERIA
             REFERENCES boca_data.BI_ENVIO_MENSAJERIA_ESTADO (id),
         CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_PAQUETE_TIPO FOREIGN KEY (id_paquete_tipo)
             REFERENCES boca_data.BI_PAQUETE_TIPO (id),
-    CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_RANGO_HORARIO FOREIGN KEY (id_rango_horario)
-    REFERENCES boca_data.BI_RANGO_HORARIO (id),
-    CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_RANGO_ETARIO_REPARTIDOR FOREIGN KEY (id_rango_etario_repartidor)
-    REFERENCES boca_data.BI_RANGO_ETARIO (id),
-    CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_LOCALIDAD_PROVINCIA FOREIGN KEY (id_localidad)
-    REFERENCES boca_data.BI_LOCALIDAD_PROVINCIA (id),
-    CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_MOVILIDAD FOREIGN KEY (id_movilidad)
-    REFERENCES boca_data.BI_MOVILIDAD_TIPO (id),
-    CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_DIA FOREIGN KEY (id_dia)
-    REFERENCES boca_data.BI_DIA (id),
-    CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_MEDIO_PAGO_TIPO FOREIGN KEY (id_medio_pago_tipo)
-    REFERENCES boca_data.BI_MEDIO_DE_PAGO_TIPO (id);
+		CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_RANGO_HORARIO FOREIGN KEY (id_rango_horario)
+			REFERENCES boca_data.BI_RANGO_HORARIO (id),
+		CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_RANGO_ETARIO_REPARTIDOR FOREIGN KEY (id_rango_etario_repartidor)
+			REFERENCES boca_data.BI_RANGO_ETARIO (id),
+		CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_LOCALIDAD_PROVINCIA FOREIGN KEY (id_localidad)
+			REFERENCES boca_data.BI_LOCALIDAD_PROVINCIA (id),
+		CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_MOVILIDAD FOREIGN KEY (id_movilidad)
+			REFERENCES boca_data.BI_MOVILIDAD_TIPO (id),
+		CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_DIA FOREIGN KEY (id_dia)
+			REFERENCES boca_data.BI_DIA (id),
+		CONSTRAINT FK_HECHOS_ENVIO_MENSAJERIA_MEDIO_PAGO_TIPO FOREIGN KEY (id_medio_pago_tipo)
+			REFERENCES boca_data.BI_MEDIO_DE_PAGO_TIPO (id);
 
 --Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo -> Tiempo
 --Reclamos segun tiempo, dia, rango etario, rango horario, local y tipo de reclamo -> Dia
@@ -318,25 +321,25 @@ ALTER TABLE boca_data.BI_HECHOS_RECLAMO
 ALTER TABLE boca_data.BI_HECHOS_PEDIDO
     WITH CHECK
     ADD CONSTRAINT FK_HECHOS_PEDIDO_TIEMPO FOREIGN KEY (id_tiempo)
-    REFERENCES boca_data.BI_TIEMPO (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_DIA FOREIGN KEY (id_dia)
-    REFERENCES boca_data.BI_DIA (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_RANGO_ETARIO_USUARIO FOREIGN KEY (id_rango_etario_usuario)
-    REFERENCES boca_data.BI_RANGO_ETARIO (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_RANGO_ETARIO_REPARTIDOR FOREIGN KEY (id_rango_etario_repartidor)
-    REFERENCES boca_data.BI_RANGO_ETARIO (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_HORARIO FOREIGN KEY (id_rango_horario)
-    REFERENCES boca_data.BI_RANGO_HORARIO (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_LOCAL FOREIGN KEY (id_local)
-    REFERENCES boca_data.BI_LOCAL (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_CATEGORIA_TIPO FOREIGN KEY (id_categoria_tipo)
-    REFERENCES boca_data.BI_LOCAL_CATEGORIA_TIPO (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_LOCALIDAD FOREIGN KEY (id_localidad)
-    REFERENCES boca_data.BI_LOCALIDAD_PROVINCIA (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_ESTADO FOREIGN KEY (id_pedido_estado)
-    REFERENCES boca_data.BI_PEDIDO_ESTADO (id),
-    CONSTRAINT FK_HECHOS_PEDIDO_MOVILIDAD_TIPO FOREIGN KEY (id_movilidad)
-    REFERENCES boca_data.BI_MOVILIDAD_TIPO (id);
+			REFERENCES boca_data.BI_TIEMPO (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_DIA FOREIGN KEY (id_dia)
+			REFERENCES boca_data.BI_DIA (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_RANGO_ETARIO_USUARIO FOREIGN KEY (id_rango_etario_usuario)
+			REFERENCES boca_data.BI_RANGO_ETARIO (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_RANGO_ETARIO_REPARTIDOR FOREIGN KEY (id_rango_etario_repartidor)
+			REFERENCES boca_data.BI_RANGO_ETARIO (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_HORARIO FOREIGN KEY (id_rango_horario)
+			REFERENCES boca_data.BI_RANGO_HORARIO (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_LOCAL FOREIGN KEY (id_local)
+			REFERENCES boca_data.BI_LOCAL (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_CATEGORIA_TIPO FOREIGN KEY (id_categoria_tipo)
+			REFERENCES boca_data.BI_LOCAL_CATEGORIA_TIPO (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_LOCALIDAD FOREIGN KEY (id_localidad)
+			REFERENCES boca_data.BI_LOCALIDAD_PROVINCIA (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_ESTADO FOREIGN KEY (id_pedido_estado)
+			REFERENCES boca_data.BI_PEDIDO_ESTADO (id),
+		CONSTRAINT FK_HECHOS_PEDIDO_MOVILIDAD_TIPO FOREIGN KEY (id_movilidad)
+			REFERENCES boca_data.BI_MOVILIDAD_TIPO (id);
 
 
 COMMIT TRANSACTION
@@ -522,7 +525,7 @@ CREATE PROCEDURE boca_data.BI_migrar_hechos_envio_mensajeria
 AS
 BEGIN
 INSERT INTO boca_data.BI_HECHOS_ENVIO_MENSAJERIA(id_tiempo,
-                                                 id_envio_mensajeria_estado ,
+                                                 id_envio_mensajeria_estado,
                                                  id_paquete_tipo,
                                                  id_rango_horario,
                                                  id_rango_etario_repartidor,
@@ -531,7 +534,8 @@ INSERT INTO boca_data.BI_HECHOS_ENVIO_MENSAJERIA(id_tiempo,
                                                  id_dia,
                                                  id_medio_pago_tipo,
                                                  valor_asegurado,
-                                                 tiempo_desvio)
+                                                 tiempo_desvio,
+                                                 cantidad_envios)
 SELECT
     bi_t.id,
     bi_eme.id,
@@ -542,11 +546,12 @@ SELECT
     bi_mov.id,
     bi_d.id,
     bi_mp.id,
-    em.valor_asegurado,
-    (em.tiempo_estimado) - (DATEDIFF(MINUTE, em.fecha_mensajeria, em.fecha_entrega))
+    SUM(em.valor_asegurado),
+    SUM( (em.tiempo_estimado) - (DATEDIFF(MINUTE, em.fecha_mensajeria, em.fecha_entrega)) ),
+	COUNT(*)
 
 FROM boca_data.ENVIO_MENSAJERIA em
-         JOIN boca_data.BI_TIEMPO bi_t on  bi_t.mes_nro = MONTH(em.fecha_entrega) AND bi_t.anio = YEAR(em.fecha_entrega)
+    JOIN boca_data.BI_TIEMPO bi_t on  bi_t.mes_nro = MONTH(em.fecha_entrega) AND bi_t.anio = YEAR(em.fecha_entrega)
     JOIN boca_data.ENVIO_ESTADO ee on ee.id = em.envio_estado_id
     JOIN boca_data.BI_ENVIO_MENSAJERIA_ESTADO bi_eme ON bi_eme.nombre = ee.nombre
     JOIN boca_data.PAQUETE p ON p.nro_envio = em.nro_envio
@@ -554,16 +559,17 @@ FROM boca_data.ENVIO_MENSAJERIA em
     JOIN boca_data.BI_PAQUETE_TIPO bi_pt ON bi_pt.nombre = pt.nombre
     JOIN boca_data.BI_RANGO_HORARIO bi_rh ON bi_rh.rango_horario= boca_data.BI_obtener_rango_horario (em.fecha_entrega)
     JOIN boca_data.REPARTIDOR r ON r.id=em.repartidor_id
-    JOIN BOCA_DATA.BI_RANGO_ETARIO bi_re ON bi_re.rango_etario = boca_data.BI_obtener_rango_etario(r.fecha_nacimiento)
+    JOIN boca_data.BI_RANGO_ETARIO bi_re ON bi_re.rango_etario = boca_data.BI_obtener_rango_etario(r.fecha_nacimiento)
     JOIN boca_data.LOCALIDAD loc ON loc.id=em.localidad_id
     JOIN boca_data.PROVINCIA pro ON  pro.id = loc.provincia_id
     JOIN boca_data.BI_LOCALIDAD_PROVINCIA bi_loc_pro ON  bi_loc_pro.localidad=loc.nombre AND  bi_loc_pro.provincia=pro.nombre
     JOIN boca_data.TIPO_MOVILIDAD tm ON tm.id=r.movilidad_id
     JOIN boca_data.BI_MOVILIDAD_TIPO bi_mov ON  bi_mov.nombre=tm.nombre
-    JOIN boca_data.BI_DIA bi_d ON bi_d.dia_nro = datepart(WEEKDAY,em.fecha_entrega)
+    JOIN boca_data.BI_DIA bi_d ON bi_d.dia_nro = DATEPART(WEEKDAY,em.fecha_entrega)
     JOIN boca_data.MEDIO_DE_PAGO mp ON  mp.id = em.medio_pago_id
     JOIN boca_data.MEDIO_DE_PAGO_TIPO mpt ON mpt.id =mp.tipo_id
     JOIN boca_data.BI_MEDIO_DE_PAGO_TIPO bi_mp ON bi_mp.nombre=mpt.nombre
+	GROUP BY bi_t.id, bi_eme.id, bi_pt.id, bi_rh.id, bi_re.id, bi_loc_pro.id, bi_mov.id, bi_d.id, bi_mp.id
 END
 GO
 
@@ -579,7 +585,8 @@ BEGIN
                                             id_reclamo_tipo,
                                             id_reclamo_estado,
                                             tiempo_resolucion,
-                                            monto_cupones)
+                                            monto_cupones,
+											cantidad_reclamos)
     SELECT
         bi_t.id,
         bi_d.id,
@@ -588,8 +595,9 @@ BEGIN
         bi_l.id,
         bi_rt.id,
         bi_res.id,
-        SUM(DATEDIFF(MINUTE, r.fecha_reclamo, r.fecha_solucion)),
-        SUM(cu.monto)
+        AVG( DATEDIFF(MINUTE, r.fecha_reclamo, r.fecha_solucion) ),  --SUM O AVG?
+        SUM(cu.monto),
+		COUNT(*)
     FROM boca_data.RECLAMO r
         JOIN boca_data.BI_TIEMPO bi_t ON bi_t.mes_nro = MONTH(r.fecha_reclamo) AND bi_t.anio = YEAR(r.fecha_reclamo)
         JOIN boca_data.BI_DIA bi_d ON bi_d.dia_nro = datepart(WEEKDAY,r.fecha_reclamo)
@@ -627,7 +635,8 @@ BEGIN
                                         monto_envio,
                                         monto_cupon,
                                         calificacion,
-                                        tiempo_desvio)
+                                        tiempo_desvio,
+										cantidad_pedidos)
 SELECT
     bi_t.id,
     bi_d.id,
@@ -639,11 +648,12 @@ SELECT
 	bi_loc_pro.id,
 	bi_pe.id,
 	bi_mt.id,
-	p.total_servicio,
-	p.tarifa_servicio,
-	p.total_cupones,
-	p.calificacion,
-	(p.tiempo_estimado) - (DATEDIFF(MINUTE, p.fecha, p.fecha_entrega))
+	SUM(p.total_servicio),
+	SUM(p.tarifa_servicio),
+	SUM(p.total_cupones),
+	AVG(p.calificacion), --CHECK SI ESTA BIEN AVG
+	AVG( (p.tiempo_estimado) - (DATEDIFF(MINUTE, p.fecha, p.fecha_entrega)) ), --SUM O AVG?
+	COUNT(*)
 FROM boca_data.PEDIDO p
     JOIN boca_data.BI_TIEMPO bi_t ON bi_t.mes_nro = MONTH(p.fecha) AND bi_t.anio = YEAR(p.fecha)
     JOIN boca_data.BI_DIA bi_d ON bi_d.dia_nro = datepart(WEEKDAY,p.fecha)
@@ -665,6 +675,7 @@ FROM boca_data.PEDIDO p
 	JOIN boca_data.BI_PEDIDO_ESTADO bi_pe ON BI_PE.nombre= pe.nombre
 	JOIN boca_data.TIPO_MOVILIDAD tm ON tm.id = r.movilidad_id
 	JOIN boca_data.BI_MOVILIDAD_TIPO bi_mt ON  bi_mt.nombre=tm.nombre
+	GROUP BY bi_t.id, bi_d.id, bi_re.id, bi_re2.id, bi_rh.id, bi_l.id, bi_lct.id, bi_loc_pro.id, bi_pe.id, bi_mt.id
 END
 GO
 
