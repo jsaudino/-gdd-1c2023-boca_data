@@ -563,7 +563,7 @@ BEGIN
         END
     ELSE IF(@edad > 55)
         BEGIN
-            SET @returnvalue = '> 50';
+            SET @returnvalue = '> 55';
         END
 
     RETURN @returnvalue;
