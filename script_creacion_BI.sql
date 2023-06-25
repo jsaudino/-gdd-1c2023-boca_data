@@ -653,7 +653,7 @@ SELECT
 	bi_pe.id,
 	bi_mt.id,
 	SUM(p.total_servicio),
-	SUM(p.tarifa_servicio),
+	SUM(e.precio_envio),
 	SUM(p.total_cupones),
 	SUM(p.calificacion),
 	SUM((DATEDIFF(MINUTE, p.fecha, p.fecha_entrega)) - (p.tiempo_estimado) ),
@@ -864,7 +864,7 @@ SELECT
     bi_t.mes_nombre mes_nombre,
     bi_t.anio anio,
     bi_loc_pro.localidad Localidad,
-    CAST(SUM(p.monto_pedido) / SUM(p.cantidad_pedidos) AS decimal(18,2)) Promedio_Mensual_de_Envios
+    CAST(SUM(p.monto_envio) / SUM(p.cantidad_pedidos) AS decimal(18,2)) Promedio_Mensual_de_Envios
 FROM boca_data.BI_HECHOS_PEDIDO p
          JOIN boca_data.BI_TIEMPO bi_t ON bi_t.id = p.id_tiempo
          JOIN boca_data.BI_LOCALIDAD_PROVINCIA bi_loc_pro ON bi_loc_pro.id = p.id_localidad
@@ -887,7 +887,7 @@ with union_table as (
            bi_dia.dia_nombre as dia,
            bi_rh.rango_horario as rango_horario,
            SUM(p.tiempo_desvio) as tiempo_desvio,
-           SUM(p. cantidad_pedidos) as cantidad
+           SUM(p.cantidad_pedidos) as cantidad
     FROM boca_data.BI_HECHOS_PEDIDO p
              JOIN boca_data.BI_MOVILIDAD_TIPO bi_mt ON bi_mt.id = p.id_movilidad
              JOIN boca_data.BI_DIA bi_dia ON bi_dia.id = p.id_dia
@@ -908,7 +908,7 @@ with union_table as (
 SELECT movilidad,
        dia,
        rango_horario,
-       CAST(SUM(tiempo_desvio) / SUM(cantidad) AS decimal(18, 2)) as desvio_promedio
+       CAST(FLOOR((SUM(tiempo_desvio) / SUM(cantidad)))AS nvarchar(10)) + ' Min'  as desvio_promedio --redondeo para no perder el signo negativo
 FROM union_table
 GROUP BY movilidad, dia, rango_horario
 GO
