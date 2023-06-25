@@ -1,0 +1,112 @@
+Se cambió el contexto de la base de datos a 'GD1C2023'.
+
+(2 filas afectadas)
+
+(24 filas afectadas)
+
+(7 filas afectadas)
+
+(3 filas afectadas)
+
+(5 filas afectadas)
+
+(3 filas afectadas)
+
+(2 filas afectadas)
+
+(4 filas afectadas)
+
+(1 filas afectadas)
+
+(1 filas afectadas)
+
+(760 filas afectadas)
+
+(3 filas afectadas)
+
+(11161 filas afectadas)
+
+(708 filas afectadas)
+
+(760 filas afectadas)
+
+(1 filas afectadas)
+
+(1 filas afectadas)
+
+(1 filas afectadas)
+
+(1 filas afectadas)
+
+(1 filas afectadas)
+
+(1 filas afectadas)
+
+(1 filas afectadas)
+
+(475 filas afectadas)
+
+(6691 filas afectadas)
+
+(1900 filas afectadas)
+
+(719 filas afectadas)
+
+(760 filas afectadas)
+
+(760 filas afectadas)
+
+(37147 filas afectadas)
+
+(37147 filas afectadas)
+
+(61257 filas afectadas)
+
+(61257 filas afectadas)
+
+(11161 filas afectadas)
+
+(20279 filas afectadas)
+
+(11161 filas afectadas)
+
+(11161 filas afectadas)
+
+(31440 filas afectadas)
+
+(141397 filas afectadas)
+Se cambió el contexto de la base de datos a 'GD1C2023'.
+
+(12 filas afectadas)
+
+(7 filas afectadas)
+
+(8 filas afectadas)
+
+(708 filas afectadas)
+
+(4 filas afectadas)
+
+(3 filas afectadas)
+
+(7 filas afectadas)
+
+(475 filas afectadas)
+
+(3 filas afectadas)
+
+(3 filas afectadas)
+
+(2 filas afectadas)
+
+(1 filas afectadas)
+
+(1 filas afectadas)
+
+(4 filas afectadas)
+
+(37007 filas afectadas)
+
+(11073 filas afectadas)
+
+(59885 filas afectadas)

@@ -1,0 +1,1 @@
+sqlcmd -S MSI -i script_creacion_inicial.sql,script_creacion_BI.sql -a 32767 -o resultado_output.txt
